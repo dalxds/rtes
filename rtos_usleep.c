@@ -9,25 +9,26 @@ int main (int argc, char *argv[]){
 	int t = 10;
 	float dt = 0.1;
 	
-	int intervals = t/dt;
-	double timestamps[intervals];
-
+	int intervals = (int) t/dt;
+	long int timestamps[intervals];
 
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
-	double init_time = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000; 
+	long int init_time = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000; 
 
-	printf("Initial Time: %f\n", init_time);
+	printf("Initial Time: %ld\n", init_time);
 
 	for (int i = 0; i < intervals; i++) {
 		gettimeofday(&tv, NULL);
-		double sig_time = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+		long int sig_time = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
 		timestamps[i] = sig_time - init_time;
 		usleep(dt * 1000000);
 	}
 
-	for (int i = 0; i < sizeof(timestamps)/sizeof(double); i++){
-		printf("%f\n", timestamps[i]);
+	/*Print Table*/
+
+	for (int i = 0; i < intervals; i++){
+		printf("%ld\n", timestamps[i]);
 	}
 }
