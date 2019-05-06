@@ -66,11 +66,11 @@ int main (int argc, char *argv[]){
 	FILE *fp1 = fopen("/Users/Dimitris/Desktop/enhancedSleep_timestamps.txt","w");
 
 	if (fp1 == NULL){
-    	printf("Error With File!");   
-    	exit(1);
-    }
+		printf("Error With File!");   
+		exit(1);
+   	}
 
-    for (int i = 1; i < intervals; i++){
+    	for (int i = 1; i < intervals; i++){
 		fprintf(fp1, "%ld\n", timestamps[i]);
 	}
 
@@ -81,9 +81,9 @@ int main (int argc, char *argv[]){
 	FILE *fp2 = fopen("/Users/Dimitris/Desktop/enhancedSleep_samples.txt","w");
 
 	if (fp2 == NULL){
-    	printf("Error With File!");   
-    	exit(1);
-    }
+		printf("Error With File!");   
+		exit(1);
+   	}
 
 	for (int i = 0; i < intervals-2; i++){
 		fprintf(fp1, "%ld\n", samples[i]);
@@ -96,11 +96,11 @@ int main (int argc, char *argv[]){
 	FILE *fp3 = fopen("/Users/Dimitris/Desktop/enhancedSleep_reference.txt","w");
 
 	if (fp3 == NULL){
-    	printf("Error With File!");   
-    	exit(1);
-    }
+		printf("Error With File!");   
+		exit(1);
+   	}
 
-    for (int i = 1; i < intervals; i++){
+    	for (int i = 1; i < intervals; i++){
 		fprintf(fp3, "%ld\n", ref[i]);
 	}
 
