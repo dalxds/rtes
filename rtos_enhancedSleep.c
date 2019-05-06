@@ -6,8 +6,13 @@
 #include <math.h>
 
 int main (int argc, char *argv[]){
-	int t = 7200;
-	float dt = 0.1;
+	if (argc < 2) {
+		printf("No proper arguments given!\nExiting...\n");
+		exit(1);
+	}
+
+	int t = atoi(argv[1]);
+	float dt = atof(argv[2]);
 
 	long diff = 0;
 	int intervals = round(t/dt) + 1;
