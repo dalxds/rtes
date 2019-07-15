@@ -7,39 +7,39 @@
 #define PORT 2288
 #define MAX 1024
 
-void message(int socket_fd) 
-{ 
-    char buff[MAX], msg[MAX-20]; 
-    int n; 
-    for (;;) { 
-        bzero(buff, sizeof(buff)); 
-        printf("Enter the string : "); 
-        n = 0; 
-        while ((buff[n++] = getchar()) != '\n'); 
-        //send message to server
-        if (send(socket_fd, buff, sizeof(buff), 0) < 0){
-            printf("Send failed \n");
-            break;
-        }
-        //bzero(buff, sizeof(buff)); 
-        //recieve message from server
-        if (recv(socket_fd, &buff, sizeof(buff), 0) <0){
-            puts("Recv failed");
-            break;
-        } 
-        printf("From Server : %s", buff); 
-        if ((strncmp(buff, "exit", 4)) == 0) { 
-            printf("Client Exit...\n"); 
-            break; 
-        } 
-    } 
-} 
+// void message(int socket_fd) 
+// { 
+//     char buff[MAX], msg[MAX-20]; 
+//     int n; 
+//     for (;;) { 
+//         bzero(buff, sizeof(buff)); 
+//         printf("Enter the string : "); 
+//         n = 0; 
+//         while ((buff[n++] = getchar()) != '\n'); 
+//         //send message to server
+//         if (send(socket_fd, buff, sizeof(buff), 0) < 0){
+//             printf("Send failed \n");
+//             break;
+//         }
+//         //bzero(buff, sizeof(buff)); 
+//         //recieve message from server
+//         if (recv(socket_fd, &buff, sizeof(buff), 0) <0){
+//             puts("Recv failed");
+//             break;
+//         } 
+//         printf("From Server : %s", buff); 
+//         if ((strncmp(buff, "exit", 4)) == 0) { 
+//             printf("Client Exit...\n"); 
+//             break; 
+//         } 
+//     } 
+// } 
 
 int main() {
 
     //nickname for every client
     char name[20];
-    printf("Please enter your nick"); 
+    printf("Please enter your nick "); 
     scanf("%s",name);
     
 	//create a socket
@@ -50,7 +50,7 @@ int main() {
         exit(EXIT_FAILURE); 
     }
 
-    //specify an adrees for the socket
+    //specify an address for the socket
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(PORT);
@@ -65,7 +65,7 @@ int main() {
         return -1; 
     } 
     else{
-        printf("connected to the server..\n"); 
+        printf("Connected to the server..\n"); 
     }
 
     //send message
@@ -75,7 +75,8 @@ int main() {
     while(1)
     {
         //Get message
-        printf(">>>"); scanf("%s",msg);
+        printf(">>>"); 
+        scanf("%s",msg);
         if(strcmp(msg,"exit") == 0){
             printf("Exit Client...\n");
             break;
@@ -86,6 +87,7 @@ int main() {
         strcat(buff, msg);
         //Send message
         int byte = send(socket_fd, buff, strlen(buff), 0);
+        //Error Handling
         if(byte == -1){
             perror("Error on Send");
             break;
@@ -95,7 +97,6 @@ int main() {
             break;
         }
         //Get reply to other users
-
         recv(socket_fd, &get_msg, MAX-1, 0);
         printf("A: %s", get_msg);
     }

@@ -14,42 +14,41 @@
 #define FALSE 0
 #define MAX 1024
 
-void message(int socket_fd) 
-{ 
-    char buff[MAX]; 
-    int n; 
-    char buff1[MAX]="From Server:"; 
+// void message(int socket_fd) 
+// { 
+//     char buff[MAX]; 
+//     int n; 
+//     char buff1[MAX]="From Server:"; 
 
-    // infinite loop for chat 
-    for (;;) { 
-        bzero(buff, MAX); 
+//     // infinite loop for chat 
+//     for (;;) { 
+//         bzero(buff, MAX); 
   
-        // receive the message from client and copy it in buffer
-        if (recv(socket_fd, &buff, sizeof(buff), 0) <0){
-            puts("Recv failed");
-            break;
-        } 
-        // print buffer which contains the client contents 
-        printf("From client: %s\t ", buff); 
-        //bzero(buff, MAX); 
-        n = 0; 
-        // copy server message in the buffer 
-        while ((buff[n++] = getchar()) != '\n') ;
-        strcat(buff1, buff); 
+//         // receive the message from client and copy it in buffer
+//         if (recv(socket_fd, &buff, sizeof(buff), 0) <0){
+//             puts("Recv failed");
+//             break;
+//         } 
+//         // print buffer which contains the client contents 
+//         printf("From client: %s\t ", buff); 
+//         //bzero(buff, MAX); 
+//         n = 0; 
+//         // copy server message in the buffer 
+//         while ((buff[n++] = getchar()) != '\n') ;
+//         strcat(buff1, buff); 
   
-        // and send that buffer to client 
-        send(socket_fd, buff1, sizeof(buff),0); 
+//         // and send that buffer to client 
+//         send(socket_fd, buff1, sizeof(buff),0); 
   
-        // if msg contains "Exit" then server exit and chat ended. 
-        if (strncmp("exit", buff, 4) == 0) { 
-            printf("Server Exit...\n"); 
-            break; 
-        } 
-    } 
-} 
+//         // if msg contains "Exit" then server exit and chat ended. 
+//         if (strncmp("exit", buff, 4) == 0) { 
+//             printf("Server Exit...\n"); 
+//             break; 
+//         } 
+//     } 
+// } 
 
 int main () {
-
 	char server_message[256];
     int end_server = FALSE;
     int new_sd = -1;
@@ -64,8 +63,7 @@ int main () {
     } 
     //Allow socket descriptor to be reuseable
     int on = 1;
-    int rc = setsockopt(socket_fd, SOL_SOCKET,  SO_REUSEADDR,
-                  (char *)&on, sizeof(on));
+    int rc = setsockopt(socket_fd, SOL_SOCKET,  SO_REUSEADDR, (char *)&on, sizeof(on));
     if (rc < 0){
         perror("setsockopt() failed");
         close(socket_fd);
@@ -81,7 +79,6 @@ int main () {
         close(socket_fd);
         exit(EXIT_FAILURE);
     }
-
 
     //define the server address
     struct sockaddr_in server_address;
@@ -250,35 +247,35 @@ int main () {
                     printf("  %d bytes received\n", len);
                     //Echo the data back to the client 
                     
-                int valread = recv(socket_fd , buffer, 1024,0); 
-                printf("%s\n", buffer ); 
-                printf("MESSAGE FROM CLIENT RECEIVED\n"); 
+                // int valread = recv(socket_fd , buffer, 1024,0); 
+                // printf("%s\n", buffer ); 
+                // printf("MESSAGE FROM CLIENT RECEIVED\n"); 
 
-                char aem1[1000000] = "8764";
-                char aem2[1000] = "8400";
+                // char aem1[1000000] = "8764";
+                // char aem2[1000] = "8400";
                  
-                char msg_sent;
-                strcat(aem1,"_");
-                strcat(aem1,aem2);
-                strcat(aem1,"_");
+                // char msg_sent;
+                // strcat(aem1,"_");
+                // strcat(aem1,aem2);
+                // strcat(aem1,"_");
 
-                time_t ltime;
-                time(&ltime); 
-                char a[10000];
-                strcpy(a,ctime(&ltime));
+                // time_t ltime;
+                // time(&ltime); 
+                // char a[10000];
+                // strcpy(a,ctime(&ltime));
     
 
-                strcat(aem1,a);
-                strcat(aem1,"_");
-                strcat(aem1,buffer);
-                int len1 = strlen(aem1);
+                // strcat(aem1,a);
+                // strcat(aem1,"_");
+                // strcat(aem1,buffer);
+                // int len1 = strlen(aem1);
 
-                rc = send(fds[i].fd, aem1, len1, 0);
-                    if (rc < 0){
-                        perror("send() failed");
-                        close_conn = TRUE;
-                        break;
-                    }
+                // rc = send(fds[i].fd, aem1, len1, 0);
+                //     if (rc < 0){
+                //         perror("send() failed");
+                //         close_conn = TRUE;
+                //         break;
+                //     }
                 } while(TRUE);
                 /* If the close_conn flag was turned on, we need
                 to clean up this active connection. This
