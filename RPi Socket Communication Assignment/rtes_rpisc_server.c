@@ -1,343 +1,336 @@
-#include <unistd.h> 
-#include <stdio.h> 
-#include <sys/socket.h> 
-#include <stdlib.h> 
-#include <netinet/in.h> 
-#include <string.h> 
-#include <sys/ioctl.h>
-#include <sys/poll.h>
-#include <sys/time.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <string>
+#include <iostream>
 #include <errno.h>
-#include <time.h>
-#define PORT 2288
-#define TRUE 1
-#define FALSE 0
-#define MAX 1024
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <map>
+#include <sstream>
 
-void message(int socket_fd) 
-{ 
-    char buff[MAX]; 
-    int n; 
-    char buff1[MAX]="From Server:"; 
+using namespace std;
 
-    // infinite loop for chat 
-    for (;;) { 
-        bzero(buff, MAX); 
-  
-        // receive the message from client and copy it in buffer
-        if (recv(socket_fd, &buff, sizeof(buff), 0) <0){
-            puts("Recv failed");
-            break;
-        } 
-        // print buffer which contains the client contents 
-        printf("From client: %s\t ", buff); 
-        //bzero(buff, MAX); 
-        n = 0; 
-        // copy server message in the buffer 
-        while ((buff[n++] = getchar()) != '\n') ;
-        strcat(buff1, buff); 
-  
-        // and send that buffer to client 
-        send(socket_fd, buff1, sizeof(buff),0); 
-  
-        // if msg contains "Exit" then server exit and chat ended. 
-        if (strncmp("exit", buff, 4) == 0) { 
-            printf("Server Exit...\n"); 
-            break; 
-        } 
-    } 
-} 
+#define MSG_SIZE 80
+#define MAX_CLIENTS 95
+#define CENTRAL_SERVER_PORT 7405
+#define SERVER_PORT 7400
+#define CONNECT_PORT 7400
 
-int main () {
+void exitClient(int fd, fd_set *readfds, char fd_array[], int *num_clients) {
+  int i;
 
-	char server_message[256];
-    int end_server = FALSE;
-    int new_sd = -1;
-    int j,i, compress_array, close_conn;
-    char buffer[1024] = {0}; 
-    char msg_sent[2000] ={0};
-	//create the server socket
-	int socket_fd;
-    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
-        perror("socket failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-    //Allow socket descriptor to be reuseable
-    int on = 1;
-    int rc = setsockopt(socket_fd, SOL_SOCKET,  SO_REUSEADDR,
-                  (char *)&on, sizeof(on));
-    if (rc < 0){
-        perror("setsockopt() failed");
-        close(socket_fd);
-        exit(EXIT_FAILURE);
-    }
+  close(fd);
+  FD_CLR(fd, readfds); //clear the leaving client from the set
+  for (i = 0; i < (*num_clients) - 1; i++)
+    if (fd_array[i] == fd)
+      break;
+  for (; i < (*num_clients) - 1; i++)
+    (fd_array[i]) = (fd_array[i + 1]);
+  (*num_clients)--;
+}
 
-    /*Set socket to be nonblocking. All of the sockets for 
-    the incoming connections will also be nonblocking since 
-    they will inherit that state from the listening socket. */
-    rc = ioctl(socket_fd, FIONBIO, (char *)&on);
-    if (rc < 0){
-        perror("ioctl() failed");
-        close(socket_fd);
-        exit(EXIT_FAILURE);
-    }
+struct cell {
+  string ip;
+  string name;
+};
 
+struct cell info[1000];
 
-    //define the server address
-    struct sockaddr_in server_address;
-    server_address.sin_family = AF_INET; 
-    server_address.sin_addr.s_addr = INADDR_ANY; 
-    server_address.sin_port = htons( PORT ); 
-    //memset(&(serverAddr.sin_zero), '\0', 8);
-
-    // Forcefully attaching socket to the port 2288 
-    rc = bind(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address));
-    if (rc < 0) { 
-        perror("bind failed"); 
-        close(socket_fd);
-        exit(EXIT_FAILURE); 
-    } 
-
-    //Set the listen back log   
-    rc = listen(socket_fd, 32);
-    if (rc < 0){ 
-        perror("listen failed"); 
-        close(socket_fd);
-        exit(EXIT_FAILURE); 
-    }
-
-    //Initialize the pollfd structure
-    struct pollfd fds[200];
-    memset(fds, 0 , sizeof(fds));
-
-    //Set up the initial listening socket
-    fds[0].fd = socket_fd;
-    fds[0].events = POLLIN;
-
-    /* Initialize the timeout to 5 minutes. If no 
-    activity after 5 minutes this program will end. 
-    Timeout value is based on milliseconds */
-
-    int timeout = (5 * 60 * 1000);
-    int nfds = 1;
-
-    /* Loop waiting for incoming connects or for incoming data
-    on any of the connected sockets.*/
-    do{
-        //Call poll() and wait 5 minutes for it to complete. 
-        printf("Waiting on poll()...\n");
-        rc = poll(fds, nfds, timeout);
-
-        //Check to see if the poll call failed. 
-        if (rc < 0){
-            perror("poll() failed");
-            break;
+void myfunc(string s) {
+  int number = s[0] - '0';
+  for(int i = 0; i < number; i++) {
+    info[i].ip = "";
+    info[i].name = "";
+  }
+  cout << "Total Online Users : " << number << endl;
+  int count = 0;
+  int i = 1;
+  int flag = 0;
+  while(1) {
+    if(s[i] != '\n') {
+      if(isalpha(s[i])) {
+        flag = 1;
+        info[count].name = info[count].name + s[i];
+      } else {
+        if(flag == 1) {
+          count++;
         }
-
-        //Check to see if the 5 minute time out expired
-        if (rc == 0){
-            printf("poll() timed out.End program.\n");
-            break;
-        }
-        /*One or more descriptors are readable. Need to 
-        determine which ones they are.*/
-
-        int current_size = nfds;
-        for (int i = 0; i < current_size; i++){
-            /* Loop through to find the descriptors that returned
-            POLLIN and determine whether it's the listening
-            or the active connection. */
-
-            //WHY ???
-            if(fds[i].revents == 0){
-                continue;
-            }
-            /* If revents is not POLLIN, it's an unexpected result
-            log and end the server. */
-            if(fds[i].revents != POLLIN){
-                printf("Error! revents = %d\n", fds[i].revents);
-                end_server = TRUE;
-                break;
-            }
-            if (fds[i].fd == socket_fd){
-                //Listening descriptor is readable.
-                printf("Listening socket is readable\n");
-
-                /* Accept all incoming connections that are
-                queued up on the listening socket before we
-                loop back and call poll again.*/
-                do{
-                    /* Accept each incoming connection. If
-                    accept fails with EWOULDBLOCK, then we
-                    have accepted all of them. Any other
-                    failure on accept will cause us to end the
-                    server.*/
-                    new_sd = accept(socket_fd, NULL, NULL);
-                    if (new_sd < 0){
-                        if (errno != EWOULDBLOCK){
-                            perror("accept() failed");
-                            end_server = TRUE;
-                        }
-                    break;
-                    }
-                    //Add the new incoming connection to the pollfd structure
-                    printf("New incoming connection - %d\n", new_sd);
-                    fds[nfds].fd = new_sd;
-                    fds[nfds].events = POLLIN;
-                    nfds++;
-                    //send message
-                    //message(socket_fd);
-                    
-                }
-                //Loop back up and accept another incoming connection
-                while (new_sd != -1);
-            }
-            /* This is not the listening socket, therefore an
-            existing connection must be readable */
-            else{
-                printf("Descriptor %d is readable\n", fds[i].fd);
-                close_conn = FALSE;
-                int valread = recv(socket_fd , buffer, 1024,0); 
-                printf("%s\n", buffer ); 
-                printf("MESSAGE FROM CLIENT RECEIVED\n"); 
-
-                char aem1[1000000] = "8764";
-                char aem2[1000] = "8400";
-                char msg_sent;
-                strcat(aem1,"_");
-                strcat(aem1,aem2);
-                strcat(aem1,"_");
-
-                time_t ltime;
-                time(&ltime); 
-                char a[10000];
-                strcpy(a,ctime(&ltime));
-    
-
-                strcat(aem1,a);
-                strcat(aem1,"_");
-                strcat(aem1,buffer);
-
-                //printf("message: %s", aem1);
-    
-
-                send(socket_fd , aem1 , strlen(aem1) , 0 ); 
-                printf("MESSAGE TO CLIENT SENT\n"); 
-                /* Receive all incoming data on this socket
-                before we loop back and call poll again.*/
-                do{
-                    /* Receive data on this connection until the
-                    recv fails with EWOULDBLOCK. If any other
-                    failure occurs, we will close the
-                    connection.*/
-                    rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-                    if (rc < 0){
-                        if (errno != EWOULDBLOCK){
-                            perror("recv() failed");
-                            close_conn = TRUE;
-                        }
-                     break;
-                    }
-                    /* Check to see if the connection has been 
-                    closed by the client. */
-                    if (rc == 0){
-                        printf("  Connection closed\n");
-                        close_conn = TRUE;
-                        break;
-                    }
-                    //data was received
-                    int len = rc;
-                    printf("  %d bytes received\n", len);
-                    //Echo the data back to the client 
-                    
-                int valread = recv(socket_fd , buffer, 1024,0); 
-                printf("%s\n", buffer ); 
-                printf("MESSAGE FROM CLIENT RECEIVED\n"); 
-
-                char aem1[1000000] = "8764";
-                char aem2[1000] = "8400";
-                 
-                char msg_sent;
-                strcat(aem1,"_");
-                strcat(aem1,aem2);
-                strcat(aem1,"_");
-
-                time_t ltime;
-                time(&ltime); 
-                char a[10000];
-                strcpy(a,ctime(&ltime));
-    
-
-                strcat(aem1,a);
-                strcat(aem1,"_");
-                strcat(aem1,buffer);
-                int len1 = strlen(aem1);
-
-                rc = send(fds[i].fd, aem1, len1, 0);
-                    if (rc < 0){
-                        perror("send() failed");
-                        close_conn = TRUE;
-                        break;
-                    }
-                } while(TRUE);
-                /* If the close_conn flag was turned on, we need
-                to clean up this active connection. This
-                clean up process includes removing the
-                descriptor.*/
-                if (close_conn){
-                    close(fds[i].fd);
-                    fds[i].fd = -1;
-                    int compress_array = TRUE;
-                }
-
-            } // End of existing connection is readble
-         } //End of loop through pollable descriptors 
-
-        /* If the compress_array flag was turned on, we need
-        to squeeze together the array and decrement the number
-        of file descriptors. We do not need to move back the
-        events and revents fields because the events will always
-        be POLLIN in this case, and revents is output.*/
-
-        if (compress_array){
-            compress_array = FALSE;
-            for (i = 0; i < nfds; i++){
-                if (fds[i].fd == -1){
-                    for(j = i; j < nfds; j++){
-                        fds[j].fd = fds[j+1].fd;
-                    }
-                i--;
-                nfds--;
-                }
-            }
-        }
-
-    } while (end_server == FALSE); // End of serving running.
-
-    //Clean up all of the sockets that are open
-    for (i = 0; i < nfds; i++){
-        if(fds[i].fd >= 0){
-            close(fds[i].fd);
-        }
+        flag = 0;
+        info[count].ip = info[count].ip + s[i];
+      }
     }
-
-
-return 0;
-
+    i++;
+    if(i == s.length()) {
+      break;
+    }
+  }
+  for(int i = 0; i < number; i++) {
+    cout << "id = " << i << "    ip = " << info[i].ip << "    name = " << info[i].name << endl;
+  }
 }
 
 
 
-    /*int client_socket;
-    if ((client_socket = accept(socket, NULL, NULL)) < 0) { 
-        perror("accept"); 
-        exit(EXIT_FAILURE); 
-    } 
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa) {
+  if (sa->sa_family == AF_INET) {
+    return &(((struct sockaddr_in *)sa)->sin_addr);
+  }
+  return &(((struct sockaddr_in6 *)sa)->sin6_addr);
+}
 
-    //send the message
-    send(client_socket, server_message, strlen(server_message), 0 ); 
 
-    //close the socket
-    close(socket);
-	return 0;
-} */
+int main(int argc, char *argv[]) {
+  int i = 0;
+  string MYNICK;
+  string CENTRAL_SERVER;
+
+  int port, port1, port2;
+  int num_clients = 1;
+  int server_sockfd, client_sockfd;
+  struct sockaddr_in server_address;
+  int addresslen = sizeof(struct sockaddr_in);
+  int fd;
+  char fd_array[MAX_CLIENTS];
+  string fd_nickarray[MAX_CLIENTS];
+  string fd_IParray[MAX_CLIENTS];
+  fd_set readfds, testfds, clientfds;
+  char msg[MSG_SIZE + 1];
+  char kb_msg[MSG_SIZE + 10];
+
+  struct sockaddr_storage their_addr;  //new
+  socklen_t sin_size; // new
+  char s[INET6_ADDRSTRLEN]; // new
+
+  /*Client variables=======================*/
+  int sockfd, Friend_sockfd; //new
+  int result;
+  char hostname[MSG_SIZE];
+  struct hostent *hostinfo, *Friend_hostinfo;
+  struct sockaddr_in address, Friend_address;
+  char alias[MSG_SIZE];
+  int clientid;
+
+
+
+  /*Client==================================================*/
+  if(argc == 2 || argc == 4) {
+    if(!strcmp("-p", argv[1])) {
+      if(argc == 2) {
+        printf("Invalid parameters.\nUsage: chat [-p PORT] HOSTNAME\n");
+        exit(0);
+      } else {
+        sscanf(argv[2], "%i", &port);
+        strcpy(hostname, argv[3]);
+      }
+    } else {
+      port = CENTRAL_SERVER_PORT;
+      strcpy(hostname, argv[1]);
+      CENTRAL_SERVER = string(hostname);
+    }
+    printf("\n*** Client program starting (enter \"quit\" to stop): \n");
+    fflush(stdout);
+
+    /* Create a socket for the client */
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    /* Name the socket, as agreed with the server */
+    hostinfo = gethostbyname(hostname);  /* look for host's name */
+    address.sin_addr = *(struct in_addr *)*hostinfo -> h_addr_list;
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+
+    /* Connect the client socket "sockfd" to the server's socket */
+    if(connect(sockfd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+      perror("connecting");
+      exit(1);
+    } else {
+
+      printf("What is your nick ?\n");
+      fgets(kb_msg, MSG_SIZE + 1, stdin);
+      //printf("%s\n",kb_msg);
+      if (strcmp(kb_msg, "quit\n") == 0) {
+        sprintf(msg, "XClient is shutting down.\n");
+        write(sockfd, msg, strlen(msg));
+        close(sockfd); //close the current client
+        exit(0); //end program
+      } else {
+        sprintf(msg, " NICK:%s", kb_msg);
+        write(sockfd, msg, strlen(msg));
+
+        result = read(sockfd, msg, MSG_SIZE);
+        msg[result] = '\0';  /* Terminate string with null */
+
+        string y(msg);
+        if( (y[0] - '0') != 1) {
+          myfunc(y);
+        }
+
+      }
+    }
+
+    fflush(stdout);
+    FD_ZERO(&clientfds);  //clear all entries from the set clientfds (client file descriptor set)
+    FD_SET(sockfd, &clientfds); // add sockfd to the clientfds to get input from server
+    FD_SET(0, &clientfds); //add stdin to the clientfds
+
+  } // end client code
+
+
+
+  /*Server==================================================*/
+
+  port1 = SERVER_PORT;
+
+  printf("\n*** Server program starting (enter \"quit\" to stop): \n");
+  fflush(stdout);
+
+  /* Create and name a socket for the server */
+  server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  server_address.sin_family = AF_INET;
+  server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_address.sin_port = htons(port1);
+  bind(server_sockfd, (struct sockaddr *)&server_address, addresslen);
+
+  /* Create a connection queue and initialize a file descriptor set */
+  listen(server_sockfd, 1);
+  FD_ZERO(&readfds);
+  FD_SET(server_sockfd, &readfds);
+  FD_SET(0, &readfds);  /* Add keyboard to file descriptor set */
+
+
+  /*  Now wait for clients and requests */
+  while (1) {
+    testfds = readfds;
+    select(FD_SETSIZE, &testfds, NULL, NULL, NULL);
+
+    /* If there is activity, find which descriptor it's on using FD_ISSET */
+    for (fd = 0; fd < FD_SETSIZE; fd++) {
+      if (FD_ISSET(fd, &testfds)) {
+
+        if (fd == server_sockfd) {
+          /* Accept a new connection request */
+          sin_size = sizeof their_addr;
+          client_sockfd = accept(server_sockfd, (struct sockaddr *)&their_addr, &sin_size);
+          inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
+          printf("server: got connection from %s\n", s);
+
+          if (num_clients < MAX_CLIENTS) {
+            FD_SET(client_sockfd, &readfds);
+            fd_array[num_clients] = client_sockfd;
+            //fd_nickarray[num_clients]=info[y2].name;
+            fd_IParray[num_clients] = s;
+
+            /*Client ID*/
+            printf("Client %d joined\n", num_clients++);
+            fflush(stdout);
+
+          } else {
+            sprintf(msg, "XSorry, too many clients.  Try again later.\n");
+            write(client_sockfd, msg, strlen(msg));
+            close(client_sockfd);
+          }
+        } else if(fd == 0) {
+          /* Process keyboard activity */
+          fgets(kb_msg, MSG_SIZE + 1, stdin);
+          if (strcmp(kb_msg, "quit\n") == 0) {
+            sprintf(msg, "XServer is shutting down.\n");
+            for (i = 0; i < num_clients ; i++) {
+              write(fd_array[i], msg, strlen(msg));
+              close(fd_array[i]);
+
+            }
+            close(server_sockfd);
+            exit(0);
+          } else if (strcmp(kb_msg, "connect\n") == 0) {
+
+            sprintf(msg, "GETLIST");
+            write(sockfd, msg, strlen(msg));
+
+            result = read(sockfd, msg, MSG_SIZE);
+            msg[result] = '\0';  /* Terminate string with null */
+
+            string y(msg);
+            if( (y[0] - '0') != 1) {
+              myfunc(y);
+            }
+
+            int Online = y[0] - '0';
+            memset(&msg[0], 0, sizeof(msg));
+
+            if (Online > 1) {
+              cout << "Enter the id you want to connect ?" << endl;
+              fgets(kb_msg, MSG_SIZE + 1, stdin);
+              sprintf(msg, "%s", kb_msg);
+              string y1(msg);
+              int y2 = y1[0] - '0';
+
+              char *xxx = &info[y2].ip[0];
+              Friend_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+              Friend_hostinfo = gethostbyname(xxx);  /* look for host's name */
+              Friend_address.sin_addr = *(struct in_addr *)*Friend_hostinfo -> h_addr_list;
+              Friend_address.sin_family = AF_INET;
+              Friend_address.sin_port = htons(port1);
+              close(sockfd);
+              connect(Friend_sockfd, (struct sockaddr *)&Friend_address, sizeof(Friend_address));
+              cout << "Connected to " << y2 << endl;
+
+
+              FD_SET(Friend_sockfd, &readfds);
+              //cout<<"num_clients while connecting is " << num_clients << endl;
+              fd_array[num_clients] = Friend_sockfd;
+              fd_nickarray[num_clients] = info[y2].name;
+              fd_IParray[num_clients++] = info[y2].ip;
+
+            }
+
+          } else {
+            sprintf(msg, "%s", kb_msg);
+            for (i = 0; i < num_clients ; i++) {
+              write(fd_array[i], msg, strlen(msg));
+
+            }
+
+            // write(Friend_sockfd, msg, strlen(msg));
+          }
+        } else if(fd) {
+          /*Process Client specific activity*/
+          //read data from open socket
+          //cout << "fd is " << fd << endl;
+          memset(&msg[0], 0, sizeof(msg));
+          memset(&kb_msg[0], 0, sizeof(kb_msg));
+          result = read(fd, msg, MSG_SIZE);
+
+          if(result == -1) {
+            perror("read()");
+          } else if(result > 0) {
+            msg[result] = '\0';
+            cout << "message : " << fd_nickarray[fd - 4] << " : " << msg << endl;
+
+            /*Exit Client*/
+            if(msg[0] == 'X') {
+              exitClient(fd, &readfds, fd_array, &num_clients);
+            }
+
+          }
+
+        } else {
+          /* A client is leaving */
+          exitClient(fd, &readfds, fd_array, &num_clients);
+        }//if
+      }
+
+    }//for
+
+
+  }//while
+
+}//main
+
