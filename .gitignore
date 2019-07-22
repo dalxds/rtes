@@ -2,7 +2,6 @@
 
 # But not these files...
 !.gitignore
-!RPi Socket Communication Assignment/rtes_rpisc_client.c
-!RPi Socket Communication Assignment/rtes_rpisc_server.c
+!RPi Socket Communication Assignment/rtes_rpisc_p2p.c
 !Time Sampling Assignment/rtes_alarm.c
 !Time Sampling Assignment/rtes_enhancedSleep.c
