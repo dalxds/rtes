@@ -12,7 +12,8 @@
 #include <time.h>
 
 /* ===== INIT ===== */
-#define PORT_DEFAULT 2288
+#define PORT_DEFAULT       2288
+#define AEM_LIST_LENGTH    50
 
 
 /* ===== STRUCTS ===== */
@@ -32,10 +33,10 @@ typedef struct {
 } p2p_struct_t;
 
 typedef struct {
-  uint32_t     aem_sender;
-  uint32_t     aem_receiver;
-  uint64_t     timestamp;
-  char[256]    msg_body;
+  uint32_t      aem_sender;
+  uint32_t      aem_receiver;
+  uint64_t      timestamp;
+  char[256]     msg_body;
 } p2p_message_t;
 
 /* ===== FUNCTIONS ===== */
@@ -44,7 +45,7 @@ void p2p_init(p2p_struct_t *p2p) {
   memset(p2p, 0, sizeof(p2p));
 }
 
-void p2p_close(p2p_struct_t* p2p) {
+void p2p_close(p2p_struct_t *p2p) {
   close(p2p->client_sock);
   close(p2p->server_sock);
 }
@@ -91,7 +92,7 @@ int p2p_listen(p2p_struct_t *p2p, char *host, char *port) {
   return server_sock;
 }
 
-//p2p_listen(): p2p struct => peer socket
+//p2p_accept(): p2p struct => peer socket
 // -> the server part 2
 //accept()
 int p2p_accept(p2p_struct_t *p2p) {
@@ -110,7 +111,7 @@ int p2p_accept(p2p_struct_t *p2p) {
 //p2p_join(): p2p struct, host IP and port => client socket
 // -> the client part
 //connect()
-int p2p_join(p2p_struct_t* p2p, char* host, char* port) {
+int p2p_join(p2p_struct_t *p2p, char *host, char *port) {
   struct sockaddr_in h_addr;
   struct sockaddr_in l_addr;
   int client_sock;
@@ -141,19 +142,19 @@ int p2p_join(p2p_struct_t* p2p, char* host, char* port) {
     return client_sock;
   }
 
-  if((call_state = connect(client_sock, (struct sockaddr*) &h_addr, sizeof(h_addr))) < 0) {
+  if((call_state = connect(client_sock, (struct sockaddr *) &h_addr, sizeof(h_addr))) < 0) {
     /* Failed : return connect error code */
     close(client_sock);
     return call_state;
   }
 
   /* get the IP of my bound interface */
-  if((call_state = getsockname(client_sock, (struct sockaddr*) &l_addr, &l_add_len)) < 0) {
+  if((call_state = getsockname(client_sock, (struct sockaddr *) &l_addr, &l_add_len)) < 0) {
     close(client_sock);
     return -1;
   }
 
-  /** send msg 
+  /** send msg
   *  if(send(client_sock, &msg, sizeof(msg), 0) != sizeof(msg)) {
   *   close(client_sock);
   *   return -1;
@@ -176,49 +177,7 @@ int main(int argc, char *argv[]) {
 
   p2p_init(&p2p);
 
-  /* if will be substitued by epoll or libevent */
-  if(listen) {
-    /* Listen to incoming connections */
-    printf("Trying to listen on %s port %s...\n", arg_ip, arg_port);
+  //epoll file descriptor
+  epfd = epoll_create(AEM_LIST_LENGTH);
 
-    if(p2p_listen(&p2p, arg_ip, arg_port) < 0) {
-      fprintf(stderr, "Unable to listen on given interface/port. Aborting.\n");
-      p2p_close(&p2p);
-      return -1;
-    }
-
-    /* ready to accept a connection */
-    if(p2p_accept(&p2p) < 0) {
-      p2p_close(&p2p);
-      return -1;
-    }
-
-  } else {
-    /* Act as a client */
-    printf("Trying to join peer at %s...\n", arg_ip);
-
-    if(p2p_join(&p2p, arg_ip, arg_port) < 0) {
-      fprintf(stderr, "Connection to peer failed. Aborting.\n");
-      p2p_close(&p2p);
-      return -1;
-    }
-
-    /* Send a query */
-    if(p2p_query(&p2p, "foo", 3) < 0) {
-      fprintf(stderr, "Can not send a query to closest peer\n");
-      p2p_close(&p2p);
-      return -2;
-    }
-
-    /* Wait for hits to read */
-    if(p2p_read_query_hit(&p2p, &query_hit) < 1) {
-      fprintf(stderr, "Can not read query hit\n");
-      p2p_close(&p2p);
-      return -2;
-    }
-  }
-
-  p2p_close(&p2p);
-  printf("All done !\n");
-
-  return 0;
+}
