@@ -10,14 +10,20 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <time.h>
+#include <assert.h>
 
-/* ===== INIT ===== */
+/**************************************************
+*                       INIT                      *
+***************************************************/
+
 #define PORT_DEFAULT       2288
 #define AEM_LIST_LENGTH    50
 
+/**************************************************
+*                     STRUCTS                     *
+***************************************************/
 
-/* ===== STRUCTS ===== */
-
+/* MAIN APP STRUCTS */
 typedef struct {
   /* Client socket identifier */
   int client_sock;
@@ -33,13 +39,110 @@ typedef struct {
 } p2p_struct_t;
 
 typedef struct {
+  //TODO: change to proper data types
+  uint32_t  id;
+  uint32_t  ip;
+  bool      status;
+  uint64_t  msgcounter
+} p2p_node_t;
+
+typedef struct {
   uint32_t      aem_sender;
   uint32_t      aem_receiver;
   uint64_t      timestamp;
   char[256]     msg_body;
 } p2p_message_t;
 
-/* ===== FUNCTIONS ===== */
+/* BUFFER STRUCTS */
+struct circular_buf_t {
+  uint8_t * buffer;
+  size_t head;
+  size_t tail;
+  size_t max; //of the buffer
+  bool full;
+  size_t counter; // TODO: check if it's correct type
+};
+
+// circular buffer structure
+typedef struct circular_buf_t circular_buf_t;
+// Handle type, the way users interact with the API
+typedef circular_buf_t *cbuf_handle_t;
+
+/**************************************************
+*                    FUNCTIONS                    *
+***************************************************/
+
+/* BUFFER FUNCTIONS */
+
+// private helpers
+static void advance_pointer(cbuf_handle_t cbuf) {
+  assert(cbuf);
+
+  if(cbuf->full) {
+    cbuf->tail = (cbuf->tail + 1) % cbuf->max;
+  }
+
+  cbuf->head = (cbuf->head + 1) % cbuf->max;
+
+  // We mark full because we will advance tail on the next time around
+  cbuf->full = (cbuf->head == cbuf->tail);
+}
+
+static void retreat_pointer(cbuf_handle_t cbuf) {
+  assert(cbuf);
+
+  cbuf->full = false;
+  cbuf->tail = (cbuf->tail + 1) % cbuf->max;
+}
+
+/// Pass in a storage buffer and size, returns a circular buffer handle
+/// Requires: buffer is not NULL, size > 0
+/// Ensures: cbuf has been created and is returned in an empty state
+cbuf_handle_t circular_buf_init(uint8_t *buffer, size_t size) {
+  assert(buffer && size);
+
+  cbuf_handle_t cbuf = malloc(sizeof(circular_buf_t));
+  assert(cbuf);
+
+  cbuf->buffer = buffer;
+  cbuf->max = size;
+  circular_buf_reset(cbuf);
+
+  assert(circular_buf_empty(cbuf));
+
+  return cbuf;
+}
+
+/// Adds data to buffer
+/// Old data is overwritten
+/// Requires: cbuf is valid and created by circular_buf_init
+void circular_buf_put(cbuf_handle_t cbuf, uint8_t data) {
+  assert(cbuf && cbuf->buffer);
+
+  cbuf->buffer[cbuf->head] = data;
+
+  advance_pointer(cbuf);
+}
+
+/// Retrieve a value from the buffer
+/// Requires: cbuf is valid and created by circular_buf_init
+/// Returns 0 on success, -1 if the buffer is empty
+int circular_buf_get(cbuf_handle_t cbuf, uint8_t *data) {
+  assert(cbuf && data && cbuf->buffer);
+
+  int r = -1;
+
+  if(!circular_buf_empty(cbuf)) {
+    *data = cbuf->buffer[cbuf->tail];
+    retreat_pointer(cbuf);
+
+    r = 0;
+  }
+
+  return r;
+}
+
+/* MAIN APP FUNCTIONS */
 
 void p2p_init(p2p_struct_t *p2p) {
   memset(p2p, 0, sizeof(p2p));
@@ -167,7 +270,9 @@ int p2p_join(p2p_struct_t *p2p, char *host, char *port) {
   return client_sock
 }
 
-/* ===== MAIN ===== */
+/**************************************************
+*                      MAIN                       *
+***************************************************/
 
 int main(int argc, char *argv[]) {
   int listen = 0;
