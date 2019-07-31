@@ -12,6 +12,9 @@
 #include <time.h>
 #include <assert.h>
 
+//my files
+#include <ring_buffer.h>
+
 /**************************************************
 *                       INIT                      *
 ***************************************************/
@@ -53,94 +56,9 @@ typedef struct {
   char[256]     msg_body;
 } p2p_message_t;
 
-/* BUFFER STRUCTS */
-struct circular_buf_t {
-  uint8_t * buffer;
-  size_t head;
-  size_t tail;
-  size_t max; //of the buffer
-  bool full;
-  size_t counter; // TODO: check if it's correct type
-};
-
-// circular buffer structure
-typedef struct circular_buf_t circular_buf_t;
-// Handle type, the way users interact with the API
-typedef circular_buf_t *cbuf_handle_t;
-
 /**************************************************
 *                    FUNCTIONS                    *
 ***************************************************/
-
-/* BUFFER FUNCTIONS */
-
-// private helpers
-static void advance_pointer(cbuf_handle_t cbuf) {
-  assert(cbuf);
-
-  if(cbuf->full) {
-    cbuf->tail = (cbuf->tail + 1) % cbuf->max;
-  }
-
-  cbuf->head = (cbuf->head + 1) % cbuf->max;
-
-  // We mark full because we will advance tail on the next time around
-  cbuf->full = (cbuf->head == cbuf->tail);
-}
-
-static void retreat_pointer(cbuf_handle_t cbuf) {
-  assert(cbuf);
-
-  cbuf->full = false;
-  cbuf->tail = (cbuf->tail + 1) % cbuf->max;
-}
-
-/// Pass in a storage buffer and size, returns a circular buffer handle
-/// Requires: buffer is not NULL, size > 0
-/// Ensures: cbuf has been created and is returned in an empty state
-cbuf_handle_t circular_buf_init(uint8_t *buffer, size_t size) {
-  assert(buffer && size);
-
-  cbuf_handle_t cbuf = malloc(sizeof(circular_buf_t));
-  assert(cbuf);
-
-  cbuf->buffer = buffer;
-  cbuf->max = size;
-  circular_buf_reset(cbuf);
-
-  assert(circular_buf_empty(cbuf));
-
-  return cbuf;
-}
-
-/// Adds data to buffer
-/// Old data is overwritten
-/// Requires: cbuf is valid and created by circular_buf_init
-void circular_buf_put(cbuf_handle_t cbuf, uint8_t data) {
-  assert(cbuf && cbuf->buffer);
-
-  cbuf->buffer[cbuf->head] = data;
-
-  advance_pointer(cbuf);
-}
-
-/// Retrieve a value from the buffer
-/// Requires: cbuf is valid and created by circular_buf_init
-/// Returns 0 on success, -1 if the buffer is empty
-int circular_buf_get(cbuf_handle_t cbuf, uint8_t *data) {
-  assert(cbuf && data && cbuf->buffer);
-
-  int r = -1;
-
-  if(!circular_buf_empty(cbuf)) {
-    *data = cbuf->buffer[cbuf->tail];
-    retreat_pointer(cbuf);
-
-    r = 0;
-  }
-
-  return r;
-}
 
 /* MAIN APP FUNCTIONS */
 
@@ -271,6 +189,21 @@ int p2p_join(p2p_struct_t *p2p, char *host, char *port) {
 }
 
 /**************************************************
+*                THREAD FUNCTIONS                 *
+***************************************************/
+
+//IO THREAD
+void *io_worker_main(void *args) {
+
+  // to be notified for epoll events
+  // epoll_events: the list of events
+  // max events: the length of the list
+  // timeout: whether to block or not and for how long
+  // int epoll_wait(int epfd, struct epoll_event *evlist, int maxevents, int timeout);
+
+}
+
+/**************************************************
 *                      MAIN                       *
 ***************************************************/
 
@@ -282,7 +215,26 @@ int main(int argc, char *argv[]) {
 
   p2p_init(&p2p);
 
+
+  /* IO WORKER */
+
   //epoll file descriptor
-  epfd = epoll_create(AEM_LIST_LENGTH);
+  epfd = epoll_create1(0);
+
+  pthread_t io_worker;
+
+  //create IO WORKER Thread
+  //TODO: encapsulate passing data (?)
+  if (pthread_create(&io_worker, NULL, io_worker_main, epfd) < 0) {
+    printf("An error occured: %d", err);
+    return -1;
+  }
+
+  //FOR SERVER AND CLIENT THREADS
+  //to add monitored files to epoll:
+  // fd: file descriptor to be added,
+  // op: EPOLL_CTL_ADD to register the fd,
+  // event: events that we want to monitor = RW w/t OR
+  // int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
 
 }
