@@ -3,5 +3,7 @@
 # But not these files...
 !.gitignore
 !RPi Socket Communication Assignment/rtes_rpisc_p2p.c
+!RPi Socket Communication Assignment/ringbuffer.h
+!RPi Socket Communication Assignment/ringbuffer.c
 !Time Sampling Assignment/rtes_alarm.c
 !Time Sampling Assignment/rtes_enhancedSleep.c
