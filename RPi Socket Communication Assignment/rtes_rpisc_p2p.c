@@ -13,7 +13,7 @@
 #include <assert.h>
 
 //my files
-#include <ring_buffer.h>
+#include <rtes_rpisc_ringbuffer.h>
 
 /**************************************************
 *                       INIT                      *
