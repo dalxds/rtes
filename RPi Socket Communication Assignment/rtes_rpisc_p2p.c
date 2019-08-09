@@ -11,16 +11,30 @@
 #include <getopt.h>
 #include <time.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <pthread.h>
+#include <poll.h>
 
 //my files
-#include <rtes_rpisc_ringbuffer.h>
+#include "rtes_rpisc_ringbuffer.h"
 
 /**************************************************
 *                       INIT                      *
 ***************************************************/
 
-#define PORT_DEFAULT       2288
-#define AEM_LIST_LENGTH    50
+#define PORT_DEFAULT          2288
+#define AEM_LIST_LENGTH       50
+#define MAX_WAITING_CLIENTS   50
+
+/* LIBEVENT FLAGS */
+#define EVLOOP_NO_EXIT_ON_EMPTY 0x04
+
+#define EV_TIMEOUT      0x01
+#define EV_READ         0x02
+#define EV_WRITE        0x04
+#define EV_SIGNAL       0x08
+#define EV_PERSIST      0x10
+#define EV_ET           0x20
 
 /**************************************************
 *                     STRUCTS                     *
@@ -46,14 +60,14 @@ typedef struct {
   uint32_t  id;
   uint32_t  ip;
   bool      status;
-  uint64_t  msgcounter
+  uint64_t  msgcounter;
 } p2p_node_t;
 
 typedef struct {
   uint32_t      aem_sender;
   uint32_t      aem_receiver;
   uint64_t      timestamp;
-  char[256]     msg_body;
+  char          msg_body[256];
 } p2p_message_t;
 
 /**************************************************
@@ -185,23 +199,62 @@ int p2p_join(p2p_struct_t *p2p, char *host, char *port) {
   /* populate the p2p struct */
   p2p->local_addr = l_addr;
   p2p->client_sock = client_sock;
-  return client_sock
+  return client_sock;
+}
+
+/* IO THREAD FUNCTIONS */
+void cb_func(evutil_socket_t fd, short what, void *arg) {
+  const char *data = arg;
+  printf("Got an event on socket %d:%s%s%s%s [%s]",
+         (int) fd,
+         (what & EV_TIMEOUT) ? " timeout" : "",
+         (what & EV_READ)    ? " read" : "",
+         (what & EV_WRITE)   ? " write" : "",
+         (what & EV_SIGNAL)  ? " signal" : "",
+         data);
+  if(what & EV_READ) {
+    //TODO: read from node and send to DATA WORKER
+  }
+  if(what & EV_WRITE){
+    //TODO: ask from DATA WORKER to send the next message for this node
+  }
 }
 
 /**************************************************
 *                THREAD FUNCTIONS                 *
 ***************************************************/
 
-//IO THREAD
+// IO THREAD
+// takes sockets
+// does the epoll wait
+// sends and receives data from data handler thread
 void *io_worker_main(void *args) {
 
-  // to be notified for epoll events
-  // epoll_events: the list of events
-  // max events: the length of the list
-  // timeout: whether to block or not and for how long
-  // int epoll_wait(int epfd, struct epoll_event *evlist, int maxevents, int timeout);
+  //initialize event base
+  struct event_base *base = event_base_new();
+
+
+  // run event loop (event polling)
+  int event_base_loop(struct event_base * base, EVLOOP_NO_EXIT_ON_EMPTY);
+
+
 
 }
+
+// DATA HANDLER THREAD
+// controls the buffer
+// sends data to IO thread
+// receives data from IO thread and adds them to the buffer
+// produces the random message
+void *data_handler_main(void *args) {
+  //initialize buffer
+  circular_buf_t buffer;
+  cbuf_handle_t circular_buf_init(uint8_t *buffer, size_t size);
+
+  //TODO: tracks the items counter send for each node respectively (along with statust in AEM_list ?)
+
+}
+
 
 /**************************************************
 *                      MAIN                       *
@@ -215,12 +268,11 @@ int main(int argc, char *argv[]) {
 
   p2p_init(&p2p);
 
+  /* POLL SETUP */
+  struct pollfd fds[AEM_LIST_LENGTH];
+  memset(fds, 0, sizeof(fds));
 
   /* IO WORKER */
-
-  //epoll file descriptor
-  epfd = epoll_create1(0);
-
   pthread_t io_worker;
 
   //create IO WORKER Thread
@@ -231,10 +283,15 @@ int main(int argc, char *argv[]) {
   }
 
   //FOR SERVER AND CLIENT THREADS
-  //to add monitored files to epoll:
-  // fd: file descriptor to be added,
-  // op: EPOLL_CTL_ADD to register the fd,
-  // event: events that we want to monitor = RW w/t OR
-  // int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+  //call function to create event
+  struct event *event_new(
+      struct event_base * base,
+      evutil_socket_t fd,
+      short what,
+      event_callback_fn cb,
+      void *arg);
+  //add event to event loop with no timeout
+  int event_add(struct event *ev, NULL);
+
 
 }
