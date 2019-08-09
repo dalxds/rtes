@@ -2,6 +2,7 @@
 
 # But not these files...
 !.gitignore
+!RPi Socket Communication Assignment/Makefile
 !RPi Socket Communication Assignment/rtes_rpisc_p2p.c
 !RPi Socket Communication Assignment/rtes_rpisc_ringbuffer.h
 !RPi Socket Communication Assignment/rtes_rpisc_ringbuffer.c

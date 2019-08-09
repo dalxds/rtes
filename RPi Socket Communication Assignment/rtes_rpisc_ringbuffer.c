@@ -1,3 +1,5 @@
+#include "rtes_rpisc_ringbuffer.h"
+
 // The hidden definition of our circular buffer structure
 struct circular_buf_t {
 	uint8_t *buffer;
@@ -5,7 +7,24 @@ struct circular_buf_t {
 	size_t tail;
 	size_t max; //of the buffer
 	bool full;
+	size_t items; //overall items count
 };
+
+// Return a struct
+cbuf_handle_t circular_buf_init(uint8_t *buffer, size_t size) {
+	assert(buffer && size);
+
+	cbuf_handle_t cbuf = malloc(sizeof(circular_buf_t));
+	assert(cbuf);
+
+	cbuf->buffer = buffer;
+	cbuf->max = size;
+	circular_buf_reset(cbuf);
+
+	assert(circular_buf_empty(cbuf));
+
+	return cbuf;
+}
 
 static void advance_pointer(cbuf_handle_t cbuf) {
 	assert(cbuf);
@@ -23,26 +42,6 @@ static void retreat_pointer(cbuf_handle_t cbuf) {
 
 	cbuf->full = false;
 	cbuf->tail = (cbuf->tail + 1) % cbuf->max;
-}
-
-// User provides struct
-void circular_buf_init(circular_buf_t *cbuf, uint8_t *buffer,
-                       size_t size);
-
-// Return a struct
-cbuf_handle_t circular_buf_init(uint8_t *buffer, size_t size) {
-	assert(buffer && size);
-
-	cbuf_handle_t cbuf = malloc(sizeof(circular_buf_t));
-	assert(cbuf);
-
-	cbuf->buffer = buffer;
-	cbuf->max = size;
-	circular_buf_reset(cbuf);
-
-	assert(circular_buf_empty(cbuf));
-
-	return cbuf;
 }
 
 void circular_buf_reset(cbuf_handle_t cbuf) {
@@ -92,26 +91,20 @@ size_t circular_buf_size(cbuf_handle_t cbuf) {
 	return size;
 }
 
+size_t circular_buf_count(cbuf_handle_t cbuf) {
+	assert(cbuf);
+
+	return cbuf->items;
+}
+
 void circular_buf_put(cbuf_handle_t cbuf, uint8_t data) {
 	assert(cbuf && cbuf->buffer);
 
 	cbuf->buffer[cbuf->head] = data;
 
+	cbuf->items++;
+
 	advance_pointer(cbuf);
-}
-
-int circular_buf_put2(cbuf_handle_t cbuf, uint8_t data) {
-	int r = -1;
-
-	assert(cbuf && cbuf->buffer);
-
-	if(!circular_buf_full(cbuf)) {
-		cbuf->buffer[cbuf->head] = data;
-		advance_pointer(cbuf);
-		r = 0;
-	}
-
-	return r;
 }
 
 int circular_buf_get(cbuf_handle_t cbuf, uint8_t *data) {
