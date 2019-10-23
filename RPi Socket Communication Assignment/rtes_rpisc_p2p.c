@@ -1,3 +1,6 @@
+// LIBS load
+
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
@@ -5,119 +8,60 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+// LIBEVENT load
+
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <event2/listener.h>
 #include <event2/util.h>
 #include <event2/event.h>
 
-static const char MESSAGE[] = "Hello, World!\n";
+// FILES load
+#include "rtes_rpisc_server.h"
 
-static const int PORT = 9995;
+// *** PROGRAM START *** //
 
-static void listener_cb(struct evconnlistener *, evutil_socket_t,
-    struct sockaddr *, int socklen, void *);
-static void conn_writecb(struct bufferevent *, void *);
-static void conn_eventcb(struct bufferevent *, short, void *);
-static void signal_cb(evutil_socket_t, short, void *);
-
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   struct event_base *base;
   struct evconnlistener *listener;
-  struct event *signal_event;
-
   struct sockaddr_in sin;
+
+  int port = 9876;
+
+  if (argc > 1) {
+    port = atoi(argv[1]);
+  }
+  if (port <= 0 || port > 65535) {
+    puts("Invalid port");
+    return 1;
+  }
 
   base = event_base_new();
   if (!base) {
-    fprintf(stderr, "Could not initialize libevent!\n");
+    puts("Couldn't open event base");
     return 1;
   }
 
+  /* Clear the sockaddr before using it, in case there are extra
+   * platform-specific fields that can mess us up. */
   memset(&sin, 0, sizeof(sin));
+  /* This is an INET address */
   sin.sin_family = AF_INET;
-  sin.sin_port = htons(PORT);
+  /* Listen on 0.0.0.0 */
+  sin.sin_addr.s_addr = htonl(0);
+  /* Listen on the given port. */
+  sin.sin_port = htons(port);
 
-  listener = evconnlistener_new_bind(base, listener_cb, (void *)base,
-      LEV_OPT_REUSEABLE|LEV_OPT_CLOSE_ON_FREE, -1,
-      (struct sockaddr*)&sin,
-      sizeof(sin));
+  listener = evconnlistener_new_bind(base, accept_conn_cb, NULL,
+                                     LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
+                                     (struct sockaddr *)&sin, sizeof(sin));
 
   if (!listener) {
-    fprintf(stderr, "Could not create a listener!\n");
+    perror("Couldn't create listener");
     return 1;
   }
-
-  signal_event = evsignal_new(base, SIGINT, signal_cb, (void *)base);
-
-  if (!signal_event || event_add(signal_event, NULL)<0) {
-    fprintf(stderr, "Could not create/add a signal event!\n");
-    return 1;
-  }
+  evconnlistener_set_error_cb(listener, accept_error_cb);
 
   event_base_dispatch(base);
-
-  evconnlistener_free(listener);
-  event_free(signal_event);
-  event_base_free(base);
-
-  printf("done\n");
   return 0;
-}
-
-static void
-listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
-    struct sockaddr *sa, int socklen, void *user_data)
-{
-  struct event_base *base = user_data;
-  struct bufferevent *bev;
-
-  bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-  if (!bev) {
-    fprintf(stderr, "Error constructing bufferevent!");
-    event_base_loopbreak(base);
-    return;
-  }
-  bufferevent_setcb(bev, NULL, conn_writecb, conn_eventcb, NULL);
-  bufferevent_enable(bev, EV_WRITE);
-  bufferevent_disable(bev, EV_READ);
-
-  bufferevent_write(bev, MESSAGE, strlen(MESSAGE));
-}
-
-static void
-conn_writecb(struct bufferevent *bev, void *user_data)
-{
-  struct evbuffer *output = bufferevent_get_output(bev);
-  if (evbuffer_get_length(output) == 0) {
-    printf("flushed answer\n");
-    bufferevent_free(bev);
-  }
-}
-
-static void
-conn_eventcb(struct bufferevent *bev, short events, void *user_data)
-{
-  if (events & BEV_EVENT_EOF) {
-    printf("Connection closed.\n");
-  } else if (events & BEV_EVENT_ERROR) {
-    printf("Got an error on the connection: %s\n",
-        strerror(errno));/*XXX win32*/
-  }
-  /* None of the other events can happen here, since we haven't enabled
-   * timeouts */
-  bufferevent_free(bev);
-}
-
-static void
-signal_cb(evutil_socket_t sig, short events, void *user_data)
-{
-  struct event_base *base = user_data;
-  struct timeval delay = { 2, 0 };
-
-  printf("Caught an interrupt signal; exiting cleanly in two seconds.\n");
-
-  event_base_loopexit(base, &delay);
 }
