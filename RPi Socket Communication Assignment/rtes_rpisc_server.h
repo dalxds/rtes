@@ -1,7 +1,11 @@
-void echo_read_cb(struct bufferevent *bev, void *ctx);
+// main server function
+int server_main(int server_port, const char *server_ip);
 
-void echo_event_cb(struct bufferevent *bev, short events, void *ctx);
+//sets socket to non-blocking mode
+//=> returns 0 on success, -1 on error
+int setnonblock(int fd);
 
-void accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx);
-
-void accept_error_cb(struct evconnlistener *listener, void *ctx);
+/*	callback function on accept
+ *	will propably be a function of the IO Worker Thread
+ */	
+void on_accept(int fd, short ev, void *arg);
