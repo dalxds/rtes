@@ -22,10 +22,11 @@
 
 // FILES load
 #include "rtes_rpisc_server.h"
+#include "rtes_rpisc_ioworker.h"
 
 // STRUCTS
 
-static struct event_base *evbase;
+struct event_base *server_base;
 
 // *** FUNCTION - START *** //
 
@@ -50,6 +51,7 @@ void on_accept(int fd, short ev, void *arg) {
   struct sockaddr_in client_addr;
   socklen_t client_len = sizeof(client_addr);
   client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+  struct event *on_accept_event;
 
   if (client_fd < 0) {
     warn("accept failed");
@@ -61,6 +63,9 @@ void on_accept(int fd, short ev, void *arg) {
     warn("failed to set client socket non-blocking\n");
 
   printf("Accepted connection from %s\n", inet_ntoa(client_addr.sin_addr));
+
+  /* TODO: add to io worker event base */
+  on_accept_event = event_new(io_base, client_fd, EV_READ | EV_PERSIST, io_handle, NULL);
 }
 
 // *** MAIN - START *** //
@@ -70,7 +75,7 @@ int server_main(int server_port, const char *server_ip) {
   int reuseaddr_on;
   struct event *server_event;
   /* Initialize libevent. */
-  evbase = event_base_new();
+  server_base = event_base_new();
   /* Create our listening socket. */
   listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -99,12 +104,12 @@ int server_main(int server_port, const char *server_ip) {
 
   /* We now have a listening socket, we create a read event to
   * be notified when a client connects. */
-  server_event = event_new(evbase, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
+  server_event = event_new(server_base, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
 
   if (event_add(server_event, NULL) < 0)
     err(1, "failed to add event to the base");
 
   /* Start the event loop. */
-  event_base_dispatch(evbase);
+  event_base_dispatch(server_base);
   return 0;
 }

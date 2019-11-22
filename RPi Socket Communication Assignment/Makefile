@@ -11,7 +11,7 @@ CFLAGS = -Wall -I.
 LDFLAGS =
 
 # Libraries to link with (none for the moment)
-LIBS = -levent
+LIBS = -levent -lpthread -levent_pthreads
 
 # Libraries path
 LIBPATH = -L/usr/local/lib/
