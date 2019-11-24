@@ -63,9 +63,11 @@ void on_accept(int fd, short ev, void *arg) {
     warn("failed to set client socket non-blocking\n");
 
   printf("Accepted connection from %s\n", inet_ntoa(client_addr.sin_addr));
-
   /* TODO: add to io worker event base */
   on_accept_event = event_new(io_base, client_fd, EV_READ | EV_PERSIST, io_handle, NULL);
+
+  if (event_add(on_accept_event, NULL) < 0)
+    err(1, "failed to add event to the base");
 }
 
 // *** MAIN - START *** //
