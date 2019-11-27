@@ -47,27 +47,30 @@ int setnonblock(int fd) {
 
 void on_accept(int fd, short ev, void *arg) {
   //here we have to implement the main funtionality of the server thread.
-  int client_fd;
+  int accepted_fd;
   struct sockaddr_in client_addr;
   socklen_t client_len = sizeof(client_addr);
-  client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
-  struct event *on_accept_event;
+  accepted_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+  struct bufferevent *accepted_bev;
 
-  if (client_fd < 0) {
+  if (accepted_fd < 0) {
     warn("accept failed");
     return;
   }
 
   /* Set the client socket to non-blocking mode. */
-  if (setnonblock(client_fd) < 0)
+  // TODO: change to evutil_make_socket_non_block()
+  if (setnonblock(accepted_fd) < 0)
     warn("failed to set client socket non-blocking\n");
 
   printf("Accepted connection from %s\n", inet_ntoa(client_addr.sin_addr));
-  /* TODO: add to io worker event base */
-  on_accept_event = event_new(io_base, client_fd, EV_READ | EV_PERSIST, io_handle, NULL);
-
-  if (event_add(on_accept_event, NULL) < 0)
-    err(1, "failed to add event to the base");
+  /*** Set up bufferevent in the base ***/
+  // set bufferevent
+  accepted_bev = bufferevent_socket_new(io_base, accepted_fd, BEV_OPT_THREADSAFE);
+  // set bufferevent's callbacks
+  bufferevent_setcb(accepted_bev, io_handle_read, NULL, NULL, NULL);
+  // enable bufferevent
+  bufferevent_enable(accepted_bev, EV_READ | EV_WRITE);
 }
 
 // *** MAIN - START *** //

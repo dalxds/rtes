@@ -36,10 +36,10 @@ int main(int argc, char **argv) {
 	int io_thread_status;
 	pthread_t io_worker_thread;
 	void *thread_result;
-
 	evthread_use_pthreads();
-    io_thread_status = pthread_create (&io_worker_thread, NULL, io_worker_main, NULL);
-    //if (io_thread_status != 0) err_abort (io_thread_status, "Create IO thread");
+	io_thread_status = pthread_create (&io_worker_thread, NULL, io_worker_main, NULL);
+	//if (io_thread_status != 0) err_abort (io_thread_status, "Create IO thread");
+	// debug thread ID: printf("IO Thread ID: %d\n", io_worker_thread);
 	server_main(S_PORT, S_IP);
 	pthread_join(io_worker_thread, &thread_result);
 	printf("Thread join! Faillll!\n");

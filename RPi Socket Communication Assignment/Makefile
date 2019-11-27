@@ -2,7 +2,7 @@
 SOURCES = rtes_rpisc_p2p.c rtes_rpisc_server.c rtes_rpisc_ioworker.c
 
 # The name of the executable
-EXE = executable
+EXE = exe
 
 # Flags for compilation (adding warnings are always good)
 CFLAGS = -Wall -I.

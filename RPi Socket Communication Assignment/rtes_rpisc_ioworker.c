@@ -27,15 +27,29 @@
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
 
 struct event_base *io_base;
+char msg[1000] = "";
 
-void * io_worker_main(void *arg) {
+void *io_worker_main(void *arg) {
+
 	printf("entered thread area\n");
-	// check if it runs endlessly
+	// TODO: check if it runs endlessly
 	io_base = event_base_new();
 	event_base_loop(io_base, EVLOOP_NO_EXIT_ON_EMPTY);
 	pthread_exit(0);
 }
 
-void io_handle(evutil_socket_t fd, short what, void *arg){
-	printf("Handler function triggered!");
+void io_handle_read(struct bufferevent *bev, void *arg) {
+
+	// read data
+    if (bufferevent_read(bev, msg, 100) < 0) 
+    	printf("Error on reading buffer");
+	// print messages
+	printf("Message Read from Client:\n");
+	printf("%s\n", msg);
+}
+
+void io_handle_write(struct bufferevent *bev, void *arg) {
+	char msg[] = "Hello Client (sent from server)";
+	if (bufferevent_write(bev, msg, strlen(msg)) < 0)   
+		printf("Error on writing buffer");
 }
