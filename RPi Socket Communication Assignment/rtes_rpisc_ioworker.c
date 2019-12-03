@@ -26,11 +26,14 @@
 
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
 
+// GLOBAL VARIABLES
+
 struct event_base *io_base;
 char msg[1000] = "";
 
-void *io_worker_main(void *arg) {
+// *** PROGRAM START *** //
 
+void *io_worker_main(void *arg) {
 	printf("entered thread area\n");
 	// TODO: check if it runs endlessly
 	io_base = event_base_new();
@@ -39,10 +42,10 @@ void *io_worker_main(void *arg) {
 }
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
-
 	// read data
-    if (bufferevent_read(bev, msg, 100) < 0) 
-    	printf("Error on reading buffer");
+	if (bufferevent_read(bev, msg, 100) < 0)
+		printf("Error on reading buffer");
+
 	// print messages
 	printf("Message Read from Client:\n");
 	printf("%s\n", msg);
@@ -50,6 +53,7 @@ void io_handle_read(struct bufferevent *bev, void *arg) {
 
 void io_handle_write(struct bufferevent *bev, void *arg) {
 	char msg[] = "Hello Client (sent from server)";
-	if (bufferevent_write(bev, msg, strlen(msg)) < 0)   
+
+	if (bufferevent_write(bev, msg, strlen(msg)) < 0)
 		printf("Error on writing buffer");
 }
