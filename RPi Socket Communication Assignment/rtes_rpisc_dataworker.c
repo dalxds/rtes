@@ -24,15 +24,13 @@
 // FILES load
 #include "rtes_rpisc_ioworker.h"
 
+// GLOBAL VARIABLES & CONSTANTS
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
-
-// GLOBAL VARIABLES
 
 // *** PROGRAM START *** //
 
 void *data_worker_main(void *arg) {
 	printf("entered DATA WORKER thread area\n");
-
 	//exit thread
 	pthread_exit(0);
 }

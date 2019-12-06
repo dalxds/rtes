@@ -1,24 +1,46 @@
-/// Pass in a storage buffer and size
-/// Returns a circular buffer handle
-cbuf_handle_t circular_buf_init(uint8_t *buffer, size_t size);
+#include <stdlib.h>
 
-/// Free a circular buffer structure.
-/// Does not free data buffer; owner is responsible for that
-void circular_buf_free(cbuf_handle_t cbuf);
+/// Opaque circular buffer structure
+typedef struct circularBuffer circularBuffer;
 
-/// Reset the circular buffer to empty, head == tail
-void circular_buf_reset(cbuf_handle_t cbuf);
+/// Handle type, the way users interact with the API
+typedef circularBuffer *cbuf;
 
-/// Put version 1 continues to add data if the buffer is full
+/// Pass in a storage buffer and size, returns a circular buffer handle
+/// Requires: buffer is not NULL, size > 0
+/// Ensures: buffer has been created and is returned in an empty state
+cbuf circular_buf_init(uint8_t *buffer, size_t size);
+
+/// Put version 1 continues to add data if the buffer is over_max
 /// Old data is overwritten
-void circular_buf_put(cbuf_handle_t cbuf, uint8_t data);
+/// Requires: buffer is valid and created by circular_buf_init
+void circular_buf_add(cbuf buffer, uint8_t data);
 
-/// Retrieve a value from the buffer
+/// Read a value from the buffer
+/// Requires: buffer is valid and created by circular_buf_init
 /// Returns 0 on success, -1 if the buffer is empty
-int circular_buf_get(cbuf_handle_t cbuf, uint8_t *data);
+int circular_buf_read(cbuf buffer, uint8_t *data, size_t index);
 
-/// Returns the current number of elements in the buffer
-size_t circular_buf_size(cbuf_handle_t cbuf);
+/// Free a circular buffer structure
+/// Requires: buffer is valid and created by circular_buf_init
+/// Does not free data buffer; owner is responsible for that
+void circular_buf_free(cbuf buffer);
 
-/// [CUSTOM] Returns overall count
-size_t circular_buf_count(cbuf_handle_t cbuf);
+/// Reset the circular buffer to empty, head == tail. Data not cleared
+/// Requires: buffer is valid and created by circular_buf_init
+void circular_buf_reset(cbuf buffer);
+
+/// Check the current value of the index
+/// Requires: buffer is valid and created by circular_buf_init
+/// Returns the current number of the index (all messages written to buffer)
+size_t circular_buf_size(cbuf buffer);
+
+/// Checks if the buffer is empty
+/// Requires: buffer is valid and created by circular_buf_init
+/// Returns true if the buffer is empty
+bool circular_buf_empty(cbuf buffer);
+
+/// Checks if the buffer is over_max
+/// Requires: buffer is valid and created by circular_buf_init
+/// Returns true if the buffer is over_max
+bool circular_buf_over_max(cbuf buffer);

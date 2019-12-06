@@ -24,12 +24,12 @@
 // FILES load
 #include "rtes_rpisc_ioworker.h"
 
+// GLOBAL VARIABLES & CONSTANTS
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
-
-// GLOBAL VARIABLES
-
-struct event_base *io_base;
 char msg[1000] = "";
+
+// STRUCTS
+struct event_base *io_base;
 
 // *** PROGRAM START *** //
 
