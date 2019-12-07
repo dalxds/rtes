@@ -46,9 +46,12 @@ void io_handle_read(struct bufferevent *bev, void *arg) {
 	if (bufferevent_read(bev, msg, 100) < 0)
 		printf("Error on reading buffer");
 
+	//delay to check callback
+	sleep(5);
 	// print messages
 	printf("Message Read from Client:\n");
 	printf("%s\n", msg);
+
 }
 
 void io_handle_write(struct bufferevent *bev, void *arg) {

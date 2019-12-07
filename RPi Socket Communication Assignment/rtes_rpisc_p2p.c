@@ -38,6 +38,7 @@ pthread_t threads_pool[THREADS_NUM];
 // STRUCTS
 struct node {
 	uint16_t node_id;
+	rwlock_t lock;
 	char ip[INET_ADDRSTRLEN];
 	size_t msg_id;
 	bool connected;
@@ -84,13 +85,13 @@ int main(int argc, char **argv) {
 	evthread_use_pthreads();
 	/*** IO Thread ***/
 	status = pthread_create (&threads_pool[0], NULL, io_worker_main, NULL);
+	if (status != 0) err_abort (status, "Create thread");
 
 	////// IO Thread debbugging
 	//if (io_thread_status != 0) err_abort (io_thread_status, "Create IO thread");
 	// debug thread ID: printf("IO Thread ID: %d\n", io_worker_thread);
 	//pthread_join(io_worker_thread, &thread_result);
 	//printf("Thread join! Faillll!\n");
-	if (status != 0) err_abort (status, "Create thread");
 
 	/*** Data Worker ***/
 	/// write here
