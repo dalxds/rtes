@@ -21,6 +21,7 @@
 #include <event2/util.h>
 
 // FILES load
+#include "rtes_rpisc_p2p.h"
 #include "rtes_rpisc_server.h"
 #include "rtes_rpisc_ioworker.h"
 
@@ -46,25 +47,36 @@ int setnonblock(int fd) {
 }
 
 void on_accept(int fd, short ev, void *arg) {
-  //here we have to implement the main funtionality of the server thread.
+  // init variables
   int accepted_fd;
-  struct sockaddr_in client_addr;
-  socklen_t client_len = sizeof(client_addr);
-  accepted_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+  struct sockaddr_in client_addr;  
   struct bufferevent *accepted_bev;
 
+  // accept socket
+  socklen_t client_len = sizeof(client_addr);
+  accepted_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+
+  //error handling
   if (accepted_fd < 0) {
     warn("accept failed");
     return;
   }
 
-  /* Set the client socket to non-blocking mode. */
-  // TODO: change to evutil_make_socket_non_block()
-  if (setnonblock(accepted_fd) < 0)
-    warn("failed to set client socket non-blocking\n");
+  /// TODO: server handling connection
+  /// for NODES_NUM
+  /// get writelock (blocking, writer pref)
+  /// find node struct
+  /// mark (bool) connected as complete
+  /// use bev struct to save the respective bev (line 80)
+  /// 
 
   printf("Accepted connection from %s\n", inet_ntoa(client_addr.sin_addr));
+
+
   /*** Set up bufferevent in the base ***/
+  // set the socket to non-block
+  // TODO: change to evutil_make_socket_non_block()
+  if (setnonblock(accepted_fd) < 0) warn("failed to set client socket non-blocking\n");
   // set bufferevent
   accepted_bev = bufferevent_socket_new(io_base, accepted_fd, BEV_OPT_THREADSAFE);
   // set bufferevent's callbacks

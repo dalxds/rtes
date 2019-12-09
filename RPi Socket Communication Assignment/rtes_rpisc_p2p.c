@@ -30,28 +30,14 @@
 const int   S_PORT    				=   2288;
 const char  S_IP[INET_ADDRSTRLEN]  	=   "127.0.0.1";
 
-#define NODES_NUM 		5
-#define THREADS_NUM		4
+// STRUCTS
 
+// TODO: align structs in desceding order
+
+// GLOBAL STRUCT ARRAYS
 pthread_t threads_pool[THREADS_NUM];
 
-// STRUCTS
-struct node {
-	uint16_t node_id;
-	rwlock_t lock;
-	char ip[INET_ADDRSTRLEN];
-	size_t msg_id;
-	bool connected;
-};
-
-node nodes_list[NODES_NUM];
-
-struct msg {
-	uint32_t      aem_sender;
-	uint32_t      aem_receiver;
-	uint64_t      timestamp;
-	char          msg_body[256];
-};
+// *** PROGRAM START *** //
 
 // PARSER
 void nodes_list_parser() {
@@ -61,20 +47,21 @@ void nodes_list_parser() {
 	fptr = fopen(fname, "r");
 
 	for (i = 0; i < NODES_NUM; i++) {
+		nodes_list -> id = i;
 		if(fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr)) {
 			strtok(&nodes_list[i].ip[0], "\n");
 		}
 	}
-
 	/*
 	 * Debugging
 	 */
 	// for (i = 0; i < NODES_NUM; i++) {
-	// 	printf(" %s\n", &nodes_list[i].ip[0]);
+	// 	if(strcmp(&nodes_list[i].ip[0], "\0")) 
+	// 		printf(" %s\n", &nodes_list[i].ip[0]);
 	// }
 }
 
-// *** PROGRAM START *** //
+//MAIN
 
 int main(int argc, char **argv) {
 	// initiliaze variables

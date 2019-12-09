@@ -1,7 +1,5 @@
 // LIBS load
-#include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <assert.h>
@@ -11,7 +9,6 @@
 #include "rtes_rpisc_rwlock.h"
 
 // GLOBAL VARIABLES & CONSTANTS
-#define EXAMPLE_BUFFER_SIZE 10
 
 // STRUCTS
 
@@ -19,7 +16,7 @@
 // NOTE: write on the report about index being size_t
 // NOTE: index and head show on the next item (that's going to be added)
 struct circularBuffer {
-	uint8_t *buffer_obj;
+	msg *buffer_obj;
 	rwlock_t lock;
 	size_t head;
 	size_t index; //id number to keep track of messages when buf size > max
@@ -28,7 +25,7 @@ struct circularBuffer {
 };
 
 // *** PROGRAM START *** //
-cbuf circular_buf_init(uint8_t *buffer_obj, size_t size) {
+cbuf circular_buf_init(msg *buffer_obj, size_t size) {
 	assert(buffer_obj && size);
 	cbuf buffer = malloc(sizeof(circularBuffer));
 	assert(buffer);
@@ -39,7 +36,7 @@ cbuf circular_buf_init(uint8_t *buffer_obj, size_t size) {
 	return buffer;
 }
 
-void circular_buf_add(cbuf buffer, uint8_t data) {
+void circular_buf_add(cbuf buffer, msg data) {
 	assert(buffer && buffer->buffer_obj);
 
 	buffer->head = (buffer->head + 1) % buffer->max;
@@ -50,7 +47,7 @@ void circular_buf_add(cbuf buffer, uint8_t data) {
 	if (!buffer->over_max) buffer->over_max = (buffer->head == 0 && buffer->index > 0);
 }
 
-int circular_buf_read(cbuf buffer, uint8_t *data, size_t index) {
+int circular_buf_read(cbuf buffer, msg *data, size_t index) {
 	assert(buffer && data && buffer->buffer_obj);
 
 	if (circular_buf_empty(buffer)) return -1;
