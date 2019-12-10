@@ -46,13 +46,9 @@ void *io_worker_main(void *arg) {
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
 	if (bufferevent_read_buffer(bev, dw_buffer) < 0)
-		printf("Error on reading buffer");
+		printf("Error on reading buffer\n");
 }
 
 void io_handle_write(struct bufferevent *bev, void *arg) {
-	printf("Write Triggered!");
-	// char msg[] = "Hello Client (sent from server)";
-
-	// if (bufferevent_write(bev, msg, strlen(msg)) < 0)
-	// 	printf("Error on writing buffer");
+	printf("[IO] Write Callback Triggered!\n");
 }

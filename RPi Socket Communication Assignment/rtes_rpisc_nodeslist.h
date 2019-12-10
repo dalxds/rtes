@@ -6,12 +6,12 @@
 /// Nodes structure
 typedef struct node node;
 
-bool node_connected(int node_id);
+void nodes_list_parser();
 
-size_t node_buf_index(int node_id);
+bool node_connected(int node_index);
 
-struct evbuffer *node_output_buffer(int node_id);
+size_t node_buf_index(int node_index);
 
-int node_add_to_output_buffer(int node_id, char *data);
+int node_add_to_output_buffer(int node_index, char *data);
 
-void node_inc_buf_index(int node_id);
+void node_inc_buf_index(int node_index);

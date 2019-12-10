@@ -25,6 +25,7 @@
 #include "rtes_rpisc_server.h"
 #include "rtes_rpisc_ioworker.h"
 #include "rtes_rpisc_rwlock.h"
+#include "rtes_rpisc_node_list.h"
 
 // GLOBAL VARIABLES & CONSTANTS
 const int   S_PORT    				=   2288;
@@ -32,7 +33,7 @@ const char  S_IP[INET_ADDRSTRLEN]  	=   "127.0.0.1";
 
 // STRUCTS
 
-// TODO: align structs in desceding order
+// TODO align structs in desceding order
 
 // GLOBAL STRUCT ARRAYS
 pthread_t threads_pool[THREADS_NUM];
@@ -45,26 +46,7 @@ pthread_t threads_pool[THREADS_NUM];
 // *** PROGRAM START *** //
 
 // PARSER
-void nodes_list_parser() {
-	char fname[] = "nodes_list.txt";
-	FILE *fptr = NULL;
-	int i = 0;
-	fptr = fopen(fname, "r");
 
-	for (i = 0; i < NODES_NUM; i++) {
-		nodes_list -> id = i;
-		if(fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr)) {
-			strtok(&nodes_list[i].ip[0], "\n");
-		}
-	}
-	/*
-	 * Debugging
-	 */
-	// for (i = 0; i < NODES_NUM; i++) {
-	// 	if(strcmp(&nodes_list[i].ip[0], "\0")) 
-	// 		printf(" %s\n", &nodes_list[i].ip[0]);
-	// }
-}
 
 //MAIN
 

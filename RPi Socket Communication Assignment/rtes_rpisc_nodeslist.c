@@ -18,7 +18,6 @@
 #include "rtes_rpisc_rwlock.h"
 
 struct node {
-	uint16_t node_id;
 	rwlock_t lock;
 	char ip[INET_ADDRSTRLEN];
 	uint32_t aem;
@@ -29,24 +28,49 @@ struct node {
 
 node nodes_list[NODES_NUM];
 
-// TODO: create init function
+// TODO create init function
 /// add parser here
-/// create aem and node ids here
+/// ---create aem inside 
 
-// TODO: ADD RW LOCKS
+// TODO add rw locks
 
-bool node_connected(int node_id){
-	return nodes_list[node_id].connected;
+void nodes_list_parser() {
+	char fname[] = "nodes_list.txt";
+	FILE *fptr = NULL;
+	int i = 0;
+	fptr = fopen(fname, "r");
+
+	for (i = 0; i < NODES_NUM; i++) {
+		if(fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr)) {
+			strtok(&nodes_list[i].ip[0], "\n");
+		}
+	}
+	// DEBUGGING 
+	// for (i = 0; i < NODES_NUM; i++) {
+	// 	if(strcmp(&nodes_list[i].ip[0], "\0")) 
+	// 		printf(" %s\n", &nodes_list[i].ip[0]);
+	// }
 }
 
-size_t node_buf_index(int node_id){
-	return nodes_list[node_id].buf_index;
+bool node_connected(int node_index){
+	// block on lock
+	return nodes_list[node_index].connected;
 }
 
-void node_inc_buf_index(int node_id){
-	nodes_list[node_id].buf_index++;
+size_t node_buf_index(int node_index){
+	// block on lock
+	// add check if still connected (?)
+	return nodes_list[node_index].buf_index;
 }
 
-int node_add_to_output_buffer(int node_id, char output[]){
-	return evbuffer_add(bufferevent_get_output(nodes_list[node_id].bev), output, MSG_SIZE);
+void node_inc_buf_index(int node_index){
+	// block on lock 
+	// add check if still connected (?)
+	nodes_list[node_index].buf_index++;
+}
+
+int node_add_to_output_buffer(int node_index, char output[]){
+	// block on lock
+	// add check if still connected (?)
+	return evbuffer_add(bufferevent_get_output(nodes_list[node_index].bev), output, MSG_SIZE);
 }
