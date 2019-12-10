@@ -23,6 +23,7 @@
 
 // FILES load
 #include "rtes_rpisc_ioworker.h"
+#include "rtes_rpisc_dataworker.h"
 
 // GLOBAL VARIABLES & CONSTANTS
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
@@ -33,30 +34,25 @@ struct event_base *io_base;
 
 // *** PROGRAM START *** //
 
+//TODO: Handle Connection Closing
+
 void *io_worker_main(void *arg) {
 	printf("entered thread area\n");
-	// TODO: check if it runs endlessly
 	io_base = event_base_new();
+	//NOTE: use EVLOOP_NON_BLOCK or not?
 	event_base_loop(io_base, EVLOOP_NO_EXIT_ON_EMPTY);
 	pthread_exit(0);
 }
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
-	// read data
-	if (bufferevent_read(bev, msg, 100) < 0)
+	if (bufferevent_read_buffer(bev, dw_buffer) < 0)
 		printf("Error on reading buffer");
-
-	//delay to check callback
-	sleep(5);
-	// print messages
-	printf("Message Read from Client:\n");
-	printf("%s\n", msg);
-
 }
 
 void io_handle_write(struct bufferevent *bev, void *arg) {
-	char msg[] = "Hello Client (sent from server)";
+	printf("Write Triggered!");
+	// char msg[] = "Hello Client (sent from server)";
 
-	if (bufferevent_write(bev, msg, strlen(msg)) < 0)
-		printf("Error on writing buffer");
+	// if (bufferevent_write(bev, msg, strlen(msg)) < 0)
+	// 	printf("Error on writing buffer");
 }

@@ -37,6 +37,11 @@ const char  S_IP[INET_ADDRSTRLEN]  	=   "127.0.0.1";
 // GLOBAL STRUCT ARRAYS
 pthread_t threads_pool[THREADS_NUM];
 
+
+//* NOTES
+/// 1. No cleanup because it should work non stop
+/// 2. No memory management
+
 // *** PROGRAM START *** //
 
 // PARSER
