@@ -47,6 +47,7 @@ typedef struct rwlock_tag {
 extern int rwl_init (rwlock_t *rwlock);
 extern int rwl_destroy (rwlock_t *rwlock);
 extern int rwl_readlock (rwlock_t *rwlock, int w_pref);
+extern int rwl_readtrylock (rwlock_t *rwlock);
 extern int rwl_readunlock (rwlock_t *rwlock);
 extern int rwl_writelock (rwlock_t *rwlock);
 extern int rwl_writeunlock (rwlock_t *rwlock, int w_pref);

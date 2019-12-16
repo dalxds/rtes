@@ -11,10 +11,11 @@ typedef circularBuffer *cbuf;
 
 /// Messages structure
 typedef struct msg {
-	uint32_t      aem_sender;
-	uint32_t      aem_receiver;
-	uint64_t      timestamp;
-	char          msg_body[256];
+    uint32_t    aem_sender;
+    uint32_t    aem_receiver;
+    uint64_t    timestamp;
+    char        msg_body[256];
+    uint32_t    recv_from;  
 } msg;
 
 const size_t MSG_SIZE = sizeof(msg);
@@ -24,7 +25,7 @@ const size_t MSG_SIZE = sizeof(msg);
 /// Ensures: buffer has been created and is returned in an empty state
 cbuf circular_buf_init(msg *buffer, size_t size);
 
-/// Put version 1 continues to add data if the buffer is over_max
+/// Adds data to the buffer
 /// Old data is overwritten
 /// Requires: buffer is valid and created by circular_buf_init
 void circular_buf_add(cbuf buffer, msg *msg);

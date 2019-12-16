@@ -118,7 +118,7 @@ static void rwl_readcleanup (void *arg) {
 /*
  * Lock a read-write lock for read access.
  */
-int rwl_readlock (rwlock_t *rwl, int w_pref) {
+int rwl_readlock (rwlock_t *rwl) {
     int status;
 
     if (rwl->valid != RWLOCK_VALID)
@@ -129,11 +129,11 @@ int rwl_readlock (rwlock_t *rwl, int w_pref) {
     if (status != 0)
         return status;
 
-    if (rwl->w_active || (rwl->w_wait * w_pref)) {
+    if (rwl->w_active || rwl->w_wait) {
         rwl->r_wait++;
         pthread_cleanup_push (rwl_readcleanup, (void *)rwl);
 
-        while (rwl->w_active || (rwl->w_wait * w_pref)) {
+        while (rwl->w_active || rwl->w_wait) {
             status = pthread_cond_wait (&rwl->read, &rwl->mutex);
 
             if (status != 0)
@@ -149,6 +149,27 @@ int rwl_readlock (rwlock_t *rwl, int w_pref) {
 
     pthread_mutex_unlock (&rwl->mutex);
     return status;
+}
+
+/*
+ * Attempt to lock a read-write lock for read access (don't
+ * block if unavailable).
+ */
+int rwl_readtrylock (rwlock_t *rwl)
+{
+    int status, status2;
+
+    if (rwl->valid != RWLOCK_VALID)
+        return EINVAL;
+    status = pthread_mutex_lock (&rwl->mutex);
+    if (status != 0)
+        return status;
+    if (rwl->w_active)
+        status = EBUSY;
+    else
+        rwl->r_active++;
+    status2 = pthread_mutex_unlock (&rwl->mutex);
+    return (status2 != 0 ? status2 : status);
 }
 
 /*
@@ -239,40 +260,20 @@ int rwl_writeunlock (rwlock_t *rwl, int w_pref) {
 
     rwl->w_active = 0;
 
-    if (w_pref) {
-        if (rwl->w_wait > 0) {
-            status = pthread_cond_signal (&rwl->write);
+    if (rwl->w_wait > 0) {
+        status = pthread_cond_signal (&rwl->write);
 
-            if (status != 0) {
-                pthread_mutex_unlock (&rwl->mutex);
-                return status;
-            }
-
-        } else if (rwl->r_wait > 0) {
-            status = pthread_cond_broadcast (&rwl->read);
-
-            if (status != 0) {
-                pthread_mutex_unlock (&rwl->mutex);
-                return status;
-            }
+        if (status != 0) {
+            pthread_mutex_unlock (&rwl->mutex);
+            return status;
         }
 
-    } else {
-        if (rwl->r_wait > 0) {
-            status = pthread_cond_broadcast (&rwl->read);
+    } else if (rwl->r_wait > 0) {
+        status = pthread_cond_broadcast (&rwl->read);
 
-            if (status != 0) {
-                pthread_mutex_unlock (&rwl->mutex);
-                return status;
-            }
-
-        } else if(rwl->w_wait > 0) {
-            status = pthread_cond_signal (&rwl->write);
-
-            if (status != 0) {
-                pthread_mutex_unlock (&rwl->mutex);
-                return status;
-            }
+        if (status != 0) {
+            pthread_mutex_unlock (&rwl->mutex);
+            return status;
         }
     }
 

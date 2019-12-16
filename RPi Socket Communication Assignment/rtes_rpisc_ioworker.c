@@ -37,18 +37,18 @@ struct event_base *io_base;
 //TODO: Handle Connection Closing
 
 void *io_worker_main(void *arg) {
-	printf("entered thread area\n");
-	io_base = event_base_new();
-	//NOTE: use EVLOOP_NON_BLOCK or not?
-	event_base_loop(io_base, EVLOOP_NO_EXIT_ON_EMPTY);
-	pthread_exit(0);
+    printf("entered thread area\n");
+    io_base = event_base_new();
+    //NOTE: use EVLOOP_NON_BLOCK or not?
+    event_base_loop(io_base, EVLOOP_NO_EXIT_ON_EMPTY);
+    pthread_exit(0);
 }
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
-	if (bufferevent_read_buffer(bev, dw_buffer) < 0)
-		printf("Error on reading buffer\n");
+    if (bufferevent_read_buffer(bev, dw_buffer) < 0)
+        printf("Error on reading buffer\n");
 }
 
 void io_handle_write(struct bufferevent *bev, void *arg) {
-	printf("[IO] Write Callback Triggered!\n");
+    printf("[IO] Write Callback Triggered!\n");
 }
