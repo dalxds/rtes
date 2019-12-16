@@ -101,4 +101,5 @@ void *data_worker_main(void *arg) {
     free(msg);
     //exit thread
     pthread_exit(0);
+
 }

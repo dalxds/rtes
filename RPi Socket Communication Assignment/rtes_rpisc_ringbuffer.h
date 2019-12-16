@@ -18,7 +18,7 @@ typedef struct msg {
     uint32_t    recv_from;  
 } msg;
 
-const size_t MSG_SIZE = sizeof(msg);
+extern const size_t MSG_SIZE;
 
 /// Pass in a storage buffer and size, returns a circular buffer handle
 /// Requires: buffer is not NULL, size > 0

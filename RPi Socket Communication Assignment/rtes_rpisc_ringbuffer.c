@@ -10,6 +10,7 @@
 #include "rtes_rpisc_rwlock.h"
 
 // GLOBAL VARIABLES & CONSTANTS
+const size_t MSG_SIZE = sizeof(msg);
 
 // STRUCTS
 
@@ -18,11 +19,11 @@
 // NOTE: index and head show on the next item (that's going to be added)
 struct circularBuffer {
     msg *buffer_obj;
-    rwlock_t lock;
-    size_t head;
-    size_t index; //id number to keep track of messages when buf size > max
-    size_t max; //of the buffer
-    bool over_max;
+    rwlock_t    lock;
+    size_t      head;
+    size_t      index; //id number to keep track of messages when buf size > max
+    size_t      max; //of the buffer
+    bool        over_max;
 };
 
 // *** PROGRAM START *** //

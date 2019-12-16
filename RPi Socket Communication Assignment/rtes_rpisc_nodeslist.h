@@ -6,6 +6,8 @@
 /// Nodes structure
 typedef struct node node;
 
+void nodes_list_init();
+
 void nodes_list_parser();
 
 bool node_connected(int node_index);

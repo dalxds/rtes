@@ -164,7 +164,7 @@ int rwl_readtrylock (rwlock_t *rwl)
     status = pthread_mutex_lock (&rwl->mutex);
     if (status != 0)
         return status;
-    if (rwl->w_active)
+    if (rwl->w_active || rwl->w_wait)
         status = EBUSY;
     else
         rwl->r_active++;
@@ -247,7 +247,7 @@ int rwl_writelock (rwlock_t *rwl) {
 /*
  * Unlock a read-write lock from write access.
  */
-int rwl_writeunlock (rwlock_t *rwl, int w_pref) {
+int rwl_writeunlock (rwlock_t *rwl) {
     int status;
 
     if (rwl->valid != RWLOCK_VALID)

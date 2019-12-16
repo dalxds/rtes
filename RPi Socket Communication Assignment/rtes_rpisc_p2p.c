@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     // initiliaze variables
     int status;
     // run parser
-    nodes_list_parser();
+    nodes_list_init();
     // use pthreads in Libevent base
     evthread_use_pthreads();
     /*** IO Thread ***/
