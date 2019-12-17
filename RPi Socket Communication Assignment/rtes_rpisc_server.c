@@ -20,6 +20,7 @@
 #include <event2/buffer.h>
 #include <event2/listener.h>
 #include <event2/util.h>
+#include <event2/thread.h>
 
 // FILES load
 #include "rtes_rpisc_p2p.h"
@@ -32,7 +33,6 @@
 struct event_base *server_base;
 
 // *** FUNCTION - START *** //
-
 int setnonblock(int fd) {
     int flags;
     flags = fcntl(fd, F_GETFL);
@@ -48,7 +48,7 @@ int setnonblock(int fd) {
     return 0;
 }
 
-void on_accept(int fd, short ev, void *arg) {
+void server_on_accept(int fd, short ev, void *arg) {
     // init variables
     int node_index;
     int accepted_fd;
@@ -61,16 +61,16 @@ void on_accept(int fd, short ev, void *arg) {
     accepted_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
 
     //error handling
-    if (accepted_fd < 0) {
+    if (accepted_fd < 0)
         warn("accept failed\n");
-    }
 
-    printf("hello start!\n");
+    printf("FIND BY IP - START\n");
     // find node_index by ip
     node_index = node_find_node_index(inet_ntoa(client_addr.sin_addr));
     if (node_index < 0)
         warn("node_index wasn't retrieved.\n");
-    printf("hello finish! Node Index: %d\n", node_index);
+
+    printf("FIND BY IP - END || Node Index: %d\n", node_index);
 
     // signal node connected
     status = node_set_connected(node_index);
@@ -83,9 +83,7 @@ void on_accept(int fd, short ev, void *arg) {
     if (setnonblock(accepted_fd) < 0)
         warn("failed to set client socket non-blocking\n");
     // set bufferevent
-    printf("hello start2!\n");
     accepted_bev = bufferevent_socket_new(io_base, accepted_fd, BEV_OPT_THREADSAFE);
-    printf("hello end2!\n");
     // save to node
     node_set_bev(node_index, accepted_bev);
     // set bufferevent's callbacks
@@ -96,6 +94,8 @@ void on_accept(int fd, short ev, void *arg) {
 
 // *** MAIN - START *** //
 void *server_main(void *arg) {
+    event_enable_debug_mode();
+    event_enable_debug_logging(EVENT_DBG_ALL);
     int listen_fd;
     struct sockaddr_in listen_addr;
     int reuseaddr_on;
@@ -129,7 +129,7 @@ void *server_main(void *arg) {
 
     /* We now have a listening socket, we create a read event to
     * be notified when a client connects. */
-    server_event = event_new(server_base, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
+    server_event = event_new(server_base, listen_fd, EV_READ | EV_PERSIST, server_on_accept, NULL);
 
     if (event_add(server_event, NULL) < 0)
         err(1, "failed to add event to the base");

@@ -22,7 +22,7 @@ struct node {
     bool        connected;
 };
 
-node nodes_list[NODES_NUM];
+struct node nodes_list[NODES_NUM];
 
 void nodes_list_init() {
     // init
@@ -35,7 +35,7 @@ void nodes_list_init() {
     // parse IPs & initiliaze data
     for (i = 0; i < NODES_NUM; i++) {
         nodes_list[i].node_index = i;
-        nodes_list[i].cbuf_index = 0;
+        nodes_list[i].cbuf_index = 5;
         nodes_list[i].connected = false;
         if (fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr))
             strtok(&nodes_list[i].ip[0], "\n");
@@ -67,6 +67,7 @@ void nodes_list_init() {
     // initialize locks
     for (i = 0; i < NODES_NUM; i++) {
         status = rwl_init(&nodes_list[i].lock);
+        printf("Lock %d initialized with status code %d\n", i, status);
         if (status != 0)
             err_abort (status, "Init rw lock");
     }
@@ -93,7 +94,7 @@ bool node_connected(int node_index) {
     return connected;
 }
 
-size_t node_buf_index(int node_index) {
+size_t node_cbuf_index(int node_index) {
     int status;
     size_t buf_index;
     status = rwl_readlock(&nodes_list[node_index].lock);
@@ -120,7 +121,7 @@ struct bufferevent *node_bev(int node_index){
     return bev;
 }
 
-int node_inc_buf_index(int node_index) {
+int node_inc_cbuf_index(int node_index) {
     int status;
     int status2 = 1;
     status = rwl_writelock(&nodes_list[node_index].lock);

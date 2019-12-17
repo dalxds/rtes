@@ -21,6 +21,7 @@
 #include <event2/buffer.h>
 #include <event2/listener.h>
 #include <event2/util.h>
+#include <event2/thread.h>
 
 // FILES load
 #include "rtes_rpisc_p2p.h"
@@ -58,14 +59,14 @@ void *data_worker_main(void *arg) {
 
     /* DEBUG_SECTION - START */
 
-    // bool printer = false;
+    bool printer = false;
 
-    // while (1) {
-    //     if (!printer) {
-    //         printf("[DW] BLACK HOLE!\n");
-    //         printer = true;
-    //     }
-    // }
+    while (1) {
+        if (!printer) {
+            printf("[DW] BLACK HOLE!\n");
+            printer = true;
+        }
+    }
 
     /* DEBUG_SECTION - END */
 
@@ -75,17 +76,18 @@ void *data_worker_main(void *arg) {
             //printf("[DW] Add to output buffer of nodes!\n");
             if (node_connected(node_index)) {
                 // check if messages from circular buffer up to the latest have been written to node's buffer
-                if (node_buf_index(node_index) > circular_buf_index(circular_buffer))
-                    break;
+                // FIXME when buffer is 0 and cbuf_index is 0 doesn't continue and creates seg fault
+                if (node_cbuf_index(node_index) > circular_buf_index(circular_buffer))
+                    continue;
                 for (int i = 0; i < 10; i++) {
                     // read message from circular buffer with the index
-                    circular_buf_read(circular_buffer, msg, node_buf_index(node_index));
+                    circular_buf_read(circular_buffer, msg, node_cbuf_index(node_index));
                     // destructure data (function in ringbuffer file)
                     circular_buf_msg_destructure(msg, output);
                     // add to output buffer as string
                     node_add_to_output_buffer(node_index, output);
                     // increment node's buffer index
-                    node_inc_buf_index(node_index);
+                    node_inc_cbuf_index(node_index);
                 }
             }
         }

@@ -17,6 +17,7 @@
 #include <event2/event.h>
 
 // LIBEVENT threads
+#include <event2/event.h>
 #include "event2/event-config.h"
 #include "event2/thread.h"
 
@@ -29,7 +30,6 @@
 #include "rtes_rpisc_nodeslist.h"
 
 // GLOBAL VARIABLES & CONSTANTS
-#define EVENT_DBG_ALL 0xffffffffu
 const uintptr_t S_PORT = 2288;
 
 // STRUCTS
@@ -51,16 +51,16 @@ pthread_t threads_pool[THREADS_NUM];
 int main(int argc, char **argv) {
     // initiliaze variables
     int status;
-    // run parser
-    nodes_list_init();
-    //run libevent debugger
-    event_enable_debug_logging(EVENT_DBG_ALL);
     // use pthreads in Libevent base
     evthread_use_pthreads();
+    // run parser
+    nodes_list_init();
+
     /*** IO Thread ***/
     status = pthread_create (&threads_pool[0], NULL, io_worker_main, NULL);
     if (status != 0) 
         err_abort (status, "[IO] Create thread");
+    printf("IO Thread ID: %d\n", (int)threads_pool[0]);
 
     ////// IO Thread debbugging
     //if (io_thread_status != 0) err_abort (io_thread_status, "Create IO thread");
@@ -72,10 +72,12 @@ int main(int argc, char **argv) {
     status = pthread_create (&threads_pool[1], NULL, data_worker_main, NULL);
     if (status != 0) 
         err_abort (status, "[DW] Create thread");
+    printf("Data Worker ID: %d\n", (int)threads_pool[1]);
     /*** Server Thread ***/
     status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
     if (status != 0) 
-        err_abort (status, "[DW] Create thread");
+        err_abort (status, "[SE] Create thread");
+    printf("Server Thread ID: %d\n", (int)threads_pool[2]);
     /*** Client Thread ***/
     /// write here
     /*** Client Thread ***/
