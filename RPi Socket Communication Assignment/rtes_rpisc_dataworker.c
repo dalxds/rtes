@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <math.h>
 
 // LIBEVENT load
 #include <event2/event.h>
@@ -37,7 +38,7 @@ void *data_worker_main(void *arg) {
     printf("[DW] Entered Thread Area.\n");
 
     // INIT circular buffer
-    printf("[DW] Circular Buffer Initialization");
+    printf("[DW] Circular Buffer Initialization\n");
     msg *buffer_obj  = malloc(NODES_NUM * MSG_SIZE);
     cbuf circular_buffer = circular_buf_init(buffer_obj, NODES_NUM);
 
@@ -46,22 +47,32 @@ void *data_worker_main(void *arg) {
     extern struct evbuffer *dw_buffer;
     dw_buffer = evbuffer_new();
     if (evbuffer_enable_locking(dw_buffer, NULL) < 0)
-        printf("Error on the dw_buffer lock! \n");
+        printf("Error on the dw_buffer lock!\n");
 
     // INIT data structures to be used in the endless loop
     struct msg *msg = malloc(MSG_SIZE);
     char input[MSG_SIZE];
     char output[MSG_SIZE];
+    size_t loop_lim;
     int found;
+
+    /* DEBUG_SECTION - START */
+
+    // bool printer = false;
+
+    // while (1) {
+    //     if (!printer) {
+    //         printf("[DW] BLACK HOLE!\n");
+    //         printer = true;
+    //     }
+    // }
+
+    /* DEBUG_SECTION - END */
 
     while (1) {
         // GET DATA READY FOR OUTPUT
-        /// --for every connected node (done)
-        /// NOTE if many nodes a new array with connected nodes would've been created
-        /// ---- get output evbuffer and write next 10 messages (done)
-
-        // initialize structures to hold the data
         for (int node_index = 0; node_index < NODES_NUM; node_index++) {
+            //printf("[DW] Add to output buffer of nodes!\n");
             if (node_connected(node_index)) {
                 // check if messages from circular buffer up to the latest have been written to node's buffer
                 if (node_buf_index(node_index) > circular_buf_index(circular_buffer))
@@ -79,13 +90,14 @@ void *data_worker_main(void *arg) {
             }
         }
         // ADD DATA FROM INPUT TO CIRCULAR BUFFER
-        /// ---- structure message (done)
-        /// ---- check if duplicates in circular buffer (done)
-        /// ---- add message to circular buffer (done)
-        /// NOTE we could make two or more threads but for the number of nodes no such optimization is needed
-        for (int i = 0; i < 10; i++) {
+        loop_lim = fmin((evbuffer_get_length(dw_buffer) % MSG_SIZE), 10);
+        //printf("Loop Limit: %zu\n", loop_lim);
+
+        for (int i = 0; i < loop_lim; i++) {
+            //printf("[DW] Read input!\n");
             // take input from buffer
-            evbuffer_remove(dw_buffer, input, MSG_SIZE);
+            if (evbuffer_remove(dw_buffer, input, MSG_SIZE) < 0)
+                printf("[DW] Ooops! A fire!\n");
             // structure data
             circular_buf_msg_structure(input, msg);
             // search if exists in buffer
@@ -95,6 +107,7 @@ void *data_worker_main(void *arg) {
                 circular_buf_add(circular_buffer, msg);
         }
         // CREATE MESSAGE
+        // TODO: if 5 min have passed create a message and add to buffer
     }
     printf("[DW] Exiting Thread.\n");
     // deallocate memory

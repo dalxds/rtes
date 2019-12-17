@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 // LIBEVENT load
 #include <event2/event.h>
@@ -24,6 +25,7 @@
 #include "rtes_rpisc_p2p.h"
 #include "rtes_rpisc_server.h"
 #include "rtes_rpisc_ioworker.h"
+#include "rtes_rpisc_nodeslist.h"
 
 // STRUCTS
 
@@ -48,7 +50,9 @@ int setnonblock(int fd) {
 
 void on_accept(int fd, short ev, void *arg) {
     // init variables
+    int node_index;
     int accepted_fd;
+    int status;
     struct sockaddr_in client_addr;
     struct bufferevent *accepted_bev;
 
@@ -58,29 +62,32 @@ void on_accept(int fd, short ev, void *arg) {
 
     //error handling
     if (accepted_fd < 0) {
-        warn("accept failed");
-        return;
+        warn("accept failed\n");
     }
 
-    /// TODO: server handling connection
-    /// for NODES_NUM
-    /// get writelock (blocking, writer pref)
-    /// find node struct
-    /// mark (bool) connected as complete
-    /// use bev struct to save the respective bev (line 80)
-    ///
+    printf("hello start!\n");
+    // find node_index by ip
+    node_index = node_find_node_index(inet_ntoa(client_addr.sin_addr));
+    if (node_index < 0)
+        warn("node_index wasn't retrieved.\n");
+    printf("hello finish! Node Index: %d\n", node_index);
 
-    printf("Accepted connection from %s\n", inet_ntoa(client_addr.sin_addr));
+    // signal node connected
+    status = node_set_connected(node_index);
 
-    // TODO: find by ip in nodelist and add to nodeslist structure
-
+    printf("[S]Accepted connection from %s | Status: %d\n", inet_ntoa(client_addr.sin_addr), status);
 
     /*** Set up bufferevent in the base ***/
     // set the socket to non-block
-    // TODO: change to evutil_make_socket_non_block()
-    if (setnonblock(accepted_fd) < 0) warn("failed to set client socket non-blocking\n");
+    // TODO: change to evutil_make_socket_non_block() (?)
+    if (setnonblock(accepted_fd) < 0)
+        warn("failed to set client socket non-blocking\n");
     // set bufferevent
+    printf("hello start2!\n");
     accepted_bev = bufferevent_socket_new(io_base, accepted_fd, BEV_OPT_THREADSAFE);
+    printf("hello end2!\n");
+    // save to node
+    node_set_bev(node_index, accepted_bev);
     // set bufferevent's callbacks
     bufferevent_setcb(accepted_bev, io_handle_read, NULL, NULL, NULL);
     // enable bufferevent
@@ -88,7 +95,7 @@ void on_accept(int fd, short ev, void *arg) {
 }
 
 // *** MAIN - START *** //
-int server_main(int server_port, const char *server_ip) {
+void *server_main(void *arg) {
     int listen_fd;
     struct sockaddr_in listen_addr;
     int reuseaddr_on;
@@ -101,11 +108,10 @@ int server_main(int server_port, const char *server_ip) {
     if (listen_fd < 0)
         err(1, "listen failed");
 
-    //TODO: make server to run on server_ip arg
     memset(&listen_addr, 0, sizeof(listen_addr));
     listen_addr.sin_family = AF_INET;
     listen_addr.sin_addr.s_addr = INADDR_ANY;
-    listen_addr.sin_port = htons(server_port);
+    listen_addr.sin_port = htons((uintptr_t)arg);
 
     if (bind(listen_fd, (struct sockaddr *)&listen_addr, sizeof(listen_addr)) < 0)
         err(1, "bind failed");
@@ -129,6 +135,9 @@ int server_main(int server_port, const char *server_ip) {
         err(1, "failed to add event to the base");
 
     /* Start the event loop. */
+    printf("[S] Server Base Dispatched!\n");
     event_base_dispatch(server_base);
-    return 0;
+
+    // exit
+    pthread_exit(0);
 }

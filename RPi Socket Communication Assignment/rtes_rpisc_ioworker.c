@@ -24,6 +24,7 @@
 // FILES load
 #include "rtes_rpisc_ioworker.h"
 #include "rtes_rpisc_dataworker.h"
+#include "rtes_rpisc_nodeslist.h"
 
 // GLOBAL VARIABLES & CONSTANTS
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
@@ -37,16 +38,18 @@ struct event_base *io_base;
 //TODO: Handle Connection Closing
 
 void *io_worker_main(void *arg) {
-    printf("entered thread area\n");
+    printf("[IO] Entered Thread Area\n");
     io_base = event_base_new();
     //NOTE: use EVLOOP_NON_BLOCK or not?
     event_base_loop(io_base, EVLOOP_NO_EXIT_ON_EMPTY);
+    printf("pthread will exit...fireeee!\n");
     pthread_exit(0);
 }
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
-    if (bufferevent_read_buffer(bev, dw_buffer) < 0)
-        printf("Error on reading buffer\n");
+    printf("[IO] Read Callback Triggered!\n");
+    // if (bufferevent_read_buffer(bev, dw_buffer) < 0)
+    //     printf("Error on reading buffer\n");
 }
 
 void io_handle_write(struct bufferevent *bev, void *arg) {

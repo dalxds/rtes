@@ -18,7 +18,7 @@ const size_t MSG_SIZE = sizeof(msg);
 // NOTE: write on the report about index being size_t
 // NOTE: index and head show on the next item (that's going to be added)
 struct circularBuffer {
-    msg *buffer_obj;
+    msg         *buffer_obj;
     rwlock_t    lock;
     size_t      head;
     size_t      index; //id number to keep track of messages when buf size > max
@@ -131,12 +131,11 @@ int circular_buf_find(cbuf buffer, msg *msg) {
     for (int i = index; i < circular_buf_size(buffer); i++) {
         status = circular_buf_read(buffer, index_msg, index);
         if (!status) return -1;
-        if (index_msg->timestamp == msg->timestamp) {
+        if (index_msg->timestamp == msg->timestamp)
             if (index_msg->aem_sender == msg->aem_sender
                     && index_msg->aem_receiver == msg->aem_receiver
                     && strcmp(index_msg->msg_body, msg->msg_body))
                 return 1;
-        }
     }
     return 0;
 }

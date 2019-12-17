@@ -1,5 +1,5 @@
 // main server function
-int server_main(int server_port, const char *server_ip);
+void *server_main(void *arg);
 
 //sets socket to non-blocking mode
 //=> returns 0 on success, -1 on error

@@ -24,42 +24,43 @@
 #include "rtes_rpisc_p2p.h"
 #include "rtes_rpisc_server.h"
 #include "rtes_rpisc_ioworker.h"
+#include "rtes_rpisc_dataworker.h"
 #include "rtes_rpisc_rwlock.h"
 #include "rtes_rpisc_nodeslist.h"
 
 // GLOBAL VARIABLES & CONSTANTS
-const int   S_PORT                  =   2288;
-const char  S_IP[INET_ADDRSTRLEN]   =   "127.0.0.1";
+#define EVENT_DBG_ALL 0xffffffffu
+const uintptr_t S_PORT = 2288;
 
 // STRUCTS
 
-// TODO align structs in desceding order
-
-// GLOBAL STRUCT ARRAYS
+/*  THREADS POOL
+ *      0: io worker
+ *      1: data worker
+ *      2: server
+ *      3: client
+ */
 pthread_t threads_pool[THREADS_NUM];
-
 
 //* NOTES
 /// 1. No cleanup because it should work non stop
 /// 2. No memory management
+/// 3. [DW] if many nodes a new array with connected nodes would've been created
 
 // *** PROGRAM START *** //
-
-// PARSER
-
-
-//MAIN
-
 int main(int argc, char **argv) {
     // initiliaze variables
     int status;
     // run parser
     nodes_list_init();
+    //run libevent debugger
+    event_enable_debug_logging(EVENT_DBG_ALL);
     // use pthreads in Libevent base
     evthread_use_pthreads();
     /*** IO Thread ***/
     status = pthread_create (&threads_pool[0], NULL, io_worker_main, NULL);
-    if (status != 0) err_abort (status, "Create thread");
+    if (status != 0) 
+        err_abort (status, "[IO] Create thread");
 
     ////// IO Thread debbugging
     //if (io_thread_status != 0) err_abort (io_thread_status, "Create IO thread");
@@ -68,11 +69,19 @@ int main(int argc, char **argv) {
     //printf("Thread join! Faillll!\n");
 
     /*** Data Worker ***/
-    /// write here
+    status = pthread_create (&threads_pool[1], NULL, data_worker_main, NULL);
+    if (status != 0) 
+        err_abort (status, "[DW] Create thread");
     /*** Server Thread ***/
-    server_main(S_PORT, S_IP);
+    status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
+    if (status != 0) 
+        err_abort (status, "[DW] Create thread");
     /*** Client Thread ***/
     /// write here
+    /*** Client Thread ***/
+    status = pthread_join (threads_pool[0], NULL);
+        if (status != 0)
+            err_abort (status, "Join thread");
     // exit main
     return 0;
 }

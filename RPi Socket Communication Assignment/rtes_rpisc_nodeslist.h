@@ -10,6 +10,12 @@ bool node_connected(int node_index);
 
 size_t node_buf_index(int node_index);
 
+int node_set_bev(int node_index, struct bufferevent *bev);
+
+int node_set_connected(int node_index);
+
 int node_add_to_output_buffer(int node_index, char *data);
 
 int node_inc_buf_index(int node_index);
+
+size_t node_find_node_index (char ip[]);
