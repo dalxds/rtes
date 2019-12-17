@@ -4,13 +4,8 @@
 #include <netinet/in.h>
 
 // LIBEVENT load
-#include <event2/event.h>
-#include <event2/event_struct.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
-#include <event2/listener.h>
-#include <event2/util.h>
-#include <inttypes.h>
 
 // FILES load
 #include "rtes_rpisc_nodeslist.h"
@@ -19,11 +14,11 @@
 
 struct node {
     rwlock_t    lock;
-    char        ip[INET_ADDRSTRLEN];
-    uint32_t    node_aem;
-    size_t      buf_index;
-    bool        connected;
     struct      bufferevent *bev;
+    char        ip[INET_ADDRSTRLEN];
+    size_t      buf_index;
+    uint32_t    node_aem;
+    bool        connected;
 };
 
 node nodes_list[NODES_NUM];
@@ -35,7 +30,7 @@ void nodes_list_init() {
     FILE *fptr = NULL;
     int i = 0;
     fptr = fopen(fname, "r");
-    
+
     // initialize data & lock
     for (i = 0; i < NODES_NUM; i++) {
         nodes_list[i].buf_index = 0;
@@ -55,7 +50,7 @@ void nodes_list_init() {
     for (i = 0; i < NODES_NUM; i++) {
         // allocate memory
         char *ip_string = strdup(&nodes_list[i].ip[0]);
-        char *aem = malloc(6);
+        char *aem = malloc(4);
 
         // remove dots and keep last two parts of string
         char *token = strtok(ip_string, ".");
@@ -79,28 +74,57 @@ void nodes_list_init() {
     //     if(strcmp(&nodes_list[i].ip[0], "\0"))
     //         printf("IPs: %s\n", &nodes_list[i].ip[0]);
     //         printf("NUM: %u\n", nodes_list[i].node_aem);
-    // }    
+    // }
 }
 
 bool node_connected(int node_index) {
-    // block on lock
+    int status;
+    status = rwl_readlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read lock");
     return nodes_list[node_index].connected;
 }
 
 size_t node_buf_index(int node_index) {
-    // block on lock
-    // add check if still connected (?)
-    return nodes_list[node_index].buf_index;
+    int status;
+    size_t buf_index;
+    status = rwl_readlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read lock");
+    if (nodes_list[node_index].connected)
+        buf_index = nodes_list[node_index].buf_index;
+    status = rwl_readunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read unlock");
+    return buf_index;
 }
 
-void node_inc_buf_index(int node_index) {
-    // block on lock
-    // add check if still connected (?)
-    nodes_list[node_index].buf_index++;
+int node_inc_buf_index(int node_index) {
+    int status;
+    int status2 = 1;
+    status = rwl_readlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read lock");
+    if (nodes_list[node_index].connected) {
+        nodes_list[node_index].buf_index++;
+        status2 = 0;
+    }
+    status = rwl_readunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read unlock");
+    return status2;
 }
 
 int node_add_to_output_buffer(int node_index, char output[]) {
-    // block on lock
-    // add check if still connected (?)
-    return evbuffer_add(bufferevent_get_output(nodes_list[node_index].bev), output, MSG_SIZE);
+    int status;
+    int status2 = -1;
+    status = rwl_readlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read lock");
+    if (nodes_list[node_index].connected)
+        status2 = evbuffer_add(bufferevent_get_output(nodes_list[node_index].bev), output, MSG_SIZE);
+    status = rwl_readunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read unlock");
+    return status2;
 }
