@@ -31,17 +31,10 @@ void nodes_list_init() {
     int i = 0;
     fptr = fopen(fname, "r");
 
-    // initialize data & lock
+    // parse IPs & initiliaze data
     for (i = 0; i < NODES_NUM; i++) {
         nodes_list[i].buf_index = 0;
         nodes_list[i].connected = false;
-        status = rwl_init(&nodes_list[i].lock);
-        if (status != 0)
-            err_abort (status, "Init rw lock");
-    }
-
-    // parse IPs
-    for (i = 0; i < NODES_NUM; i++) {
         if (fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr))
             strtok(&nodes_list[i].ip[0], "\n");
     }
@@ -69,7 +62,14 @@ void nodes_list_init() {
         free(aem);
     }
 
-    // DEBUGGING
+    // initialize locks
+    for (i = 0; i < NODES_NUM; i++) {
+        status = rwl_init(&nodes_list[i].lock);
+        if (status != 0)
+            err_abort (status, "Init rw lock");
+    }
+
+    /* DEBUGGING */
     // for (i = 0; i < NODES_NUM; i++) {
     //     if(strcmp(&nodes_list[i].ip[0], "\0"))
     //         printf("IPs: %s\n", &nodes_list[i].ip[0]);
@@ -107,16 +107,16 @@ size_t node_buf_index(int node_index) {
 int node_inc_buf_index(int node_index) {
     int status;
     int status2 = 1;
-    status = rwl_readlock(&nodes_list[node_index].lock);
+    status = rwl_writelock(&nodes_list[node_index].lock);
     if (status != 0)
-        err_abort (status, "Read lock");
+        err_abort (status, "Write lock");
     if (nodes_list[node_index].connected) {
         nodes_list[node_index].buf_index++;
         status2 = 0;
     }
-    status = rwl_readunlock(&nodes_list[node_index].lock);
+    status = rwl_writeunlock(&nodes_list[node_index].lock);
     if (status != 0)
-        err_abort (status, "Read unlock");
+        err_abort (status, "Write unlock");
     return status2;
 }
 
