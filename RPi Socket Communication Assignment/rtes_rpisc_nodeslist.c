@@ -79,10 +79,15 @@ void nodes_list_init() {
 
 bool node_connected(int node_index) {
     int status;
+    bool connected;
     status = rwl_readlock(&nodes_list[node_index].lock);
     if (status != 0)
         err_abort (status, "Read lock");
-    return nodes_list[node_index].connected;
+    connected = nodes_list[node_index].connected;
+    status = rwl_readunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read unlock");
+    return connected;
 }
 
 size_t node_buf_index(int node_index) {
