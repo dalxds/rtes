@@ -72,10 +72,6 @@ void server_on_accept(int fd, short ev, void *arg) {
 
     printf("FIND BY IP - END || Node Index: %d\n", node_index);
 
-    // signal node connected
-    status = node_set_connected(node_index);
-
-    printf("[S]Accepted connection from %s | Status: %d\n", inet_ntoa(client_addr.sin_addr), status);
 
     /*** Set up bufferevent in the base ***/
     // set the socket to non-block
@@ -84,12 +80,15 @@ void server_on_accept(int fd, short ev, void *arg) {
         warn("failed to set client socket non-blocking\n");
     // set bufferevent
     accepted_bev = bufferevent_socket_new(io_base, accepted_fd, BEV_OPT_THREADSAFE);
-    // save to node
-    node_set_bev(node_index, accepted_bev);
     // set bufferevent's callbacks
     bufferevent_setcb(accepted_bev, io_handle_read, NULL, NULL, NULL);
     // enable bufferevent
     bufferevent_enable(accepted_bev, EV_READ | EV_WRITE);
+    // save to node
+    node_set_bev(node_index, accepted_bev);
+    // signal node connected
+    status = node_set_connected(node_index);
+    printf("[S] Accepted connection from %s | Status: %d\n", inet_ntoa(client_addr.sin_addr), status);
 }
 
 // *** MAIN - START *** //

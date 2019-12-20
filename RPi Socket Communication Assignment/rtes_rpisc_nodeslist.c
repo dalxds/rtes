@@ -1,6 +1,7 @@
 // LIBS load
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 #include <netinet/in.h>
 
 // LIBEVENT load
@@ -35,7 +36,8 @@ void nodes_list_init() {
     // parse IPs & initiliaze data
     for (i = 0; i < NODES_NUM; i++) {
         nodes_list[i].node_index = i;
-        nodes_list[i].cbuf_index = 5;
+        //NOTE messages in buffer start from 1
+        nodes_list[i].cbuf_index = 1;
         nodes_list[i].connected = false;
         if (fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr))
             strtok(&nodes_list[i].ip[0], "\n");
@@ -108,7 +110,21 @@ size_t node_cbuf_index(int node_index) {
     return buf_index;
 }
 
-struct bufferevent *node_bev(int node_index){
+uint32_t node_aem(int node_index) {
+    int status;
+    uint32_t node_aem;
+    status = rwl_readlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read lock");
+    if (nodes_list[node_index].connected)
+        node_aem = nodes_list[node_index].node_aem;
+    status = rwl_readunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read unlock");
+    return node_aem;
+}
+
+struct bufferevent *node_bev(int node_index) {
     int status;
     struct bufferevent *bev;
     status = rwl_readlock(&nodes_list[node_index].lock);

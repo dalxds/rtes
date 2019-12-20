@@ -14,11 +14,11 @@ typedef struct msg {
     uint32_t    aem_sender;
     uint32_t    aem_receiver;
     uint64_t    timestamp;
-    char        msg_body[256];
-    uint32_t    recv_from;  
+    char        msg_body[256 + sizeof('\n')];
 } msg;
 
 extern const size_t MSG_SIZE;
+extern const uint32_t THIS_AEM;
 
 /// Pass in a storage buffer and size, returns a circular buffer handle
 /// Requires: buffer is not NULL, size > 0
@@ -77,3 +77,8 @@ void circular_buf_msg_destructure(msg *msg, char str[]);
 /// Requires: a cbuf buffer and an msg object
 /// Returns 1 if element found, 0 on success with no found, -1 if can't read
 int circular_buf_find(cbuf buffer, msg *msg);
+
+/// DEBUG_SECTION START
+void print_buffer_status(cbuf buffer);
+void print_buffer(cbuf buffer);
+/// DEBUG_SECTION END

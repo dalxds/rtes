@@ -55,7 +55,6 @@ int main(int argc, char **argv) {
     evthread_use_pthreads();
     // run parser
     nodes_list_init();
-
     /*** IO Thread ***/
     status = pthread_create (&threads_pool[0], NULL, io_worker_main, NULL);
     if (status != 0) 

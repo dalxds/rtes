@@ -5,7 +5,7 @@ SOURCES = rtes_rpisc_p2p.c rtes_rpisc_server.c rtes_rpisc_ioworker.c rtes_rpisc_
 EXE = exe
 
 # Flags for compilation (adding warnings are always good)
-CFLAGS = -Wall -I.
+CFLAGS = -Wall -g -I.
 
 # Flags for linking (none for the moment)
 LDFLAGS =

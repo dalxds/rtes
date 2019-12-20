@@ -29,7 +29,6 @@
 
 // GLOBAL VARIABLES & CONSTANTS
 #define EVLOOP_NO_EXIT_ON_EMPTY 0x04
-char msg[1000] = "";
 
 // STRUCTS
 struct event_base *io_base;
@@ -49,8 +48,8 @@ void *io_worker_main(void *arg) {
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
     printf("[IO] Read Callback Triggered!\n");
-    // if (bufferevent_read_buffer(bev, dw_buffer) < 0)
-    //     printf("Error on reading buffer\n");
+    if (bufferevent_read_buffer(bev, dw_buffer) < 0)
+        printf("Error on reading buffer\n");
 }
 
 void io_handle_write(struct bufferevent *bev, void *arg) {

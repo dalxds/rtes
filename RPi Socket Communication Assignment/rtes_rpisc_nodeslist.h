@@ -10,6 +10,8 @@ bool node_connected(int node_index);
 
 size_t node_cbuf_index(int node_index);
 
+uint32_t node_aem(int node_index);
+
 int node_set_bev(int node_index, struct bufferevent *bev);
 
 int node_set_connected(int node_index);
