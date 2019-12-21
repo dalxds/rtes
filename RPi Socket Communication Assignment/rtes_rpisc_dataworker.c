@@ -117,37 +117,17 @@ void *data_worker_main(void *arg) {
             loop_lim = fmin((int)ceil(dw_buffer_length / 287) + 1, 10);
 
         for (int i = 0; i < loop_lim; i++) {
-            //printf("[DW] Read input!\n");
             if (i == 0)
                 printf("\nEvBuffer: %zu - Loop Limit: %zu\n",
                        dw_buffer_length,
                        loop_lim);
-
-            // copy input from buffer
-            // evbuffer_copyout(dw_buffer, input, MSG_SIZE);
-            // printf("\nInput copied: %s\n", input);
-            // msg_end = strchr(input, '\n');
-            // *msg_end = '\0';
-            // input_len = strlen(input);
-
-            // msg_char = evbuffer_pullup(dw_buffer, MSG_SIZE);
-            // for (input_len = 0; input_len < MSG_SIZE; input_len++) {
-            //     if (msg_char[input_len] == '\n') {
-            //         input_len++;
-            //         break;
-            //     }
-            // }
             strcpy(input_string, evbuffer_readln(dw_buffer, NULL , EVBUFFER_EOL_LF));
-            printf("\nInput removed: %s\n", input_string);
-            // if (evbuffer_remove(dw_buffer, input, sizeof(input)) < 0)
-            //     printf("[DW] Ooops! A fire!\n");
-            // //DEBUG_SECTION
-            // printf("\nInput removed: %s\n", input);
+            //printf("\nInput removed: %s\n", input_string);
             // structure data
             circular_buf_msg_structure(input_string, input_msg);
             // search if exists in buffer
             found = circular_buf_find(circular_buffer, input_msg);
-            printf("\nFOUND? %d\n", found);
+            //printf("\nFOUND? %d\n", found);
             // add in circular buffer if it doesn't exist
             if (!found) {
                 circular_buf_add(circular_buffer, input_msg);

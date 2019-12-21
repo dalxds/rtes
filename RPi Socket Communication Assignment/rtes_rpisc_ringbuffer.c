@@ -133,18 +133,20 @@ void circular_buf_msg_destructure(msg *msg, char str[]) {
 //NOTE: a more optimized search approach is not needed due to the number of the buf elements
 int circular_buf_find(cbuf buffer, msg *msg) {
     int status;
-    size_t index = circular_buf_size(buffer);
+    size_t index = circular_buf_index(buffer);
+    size_t size = circular_buf_size(buffer);
     struct msg *index_msg = malloc(MSG_SIZE);
-    for (int i = 0; i < index; i++) {
+    for (int i = 0; i < size ; i++) {
         status = circular_buf_read(buffer, index_msg, index);
-        if (status < 0){
+        index--;
+        if (status < 0) {
             free(index_msg);
             return -1;
         }
-        if (index_msg->timestamp == msg->timestamp){
+        if (index_msg->timestamp == msg->timestamp) {
             if (index_msg->aem_sender == msg->aem_sender
                     && index_msg->aem_receiver == msg->aem_receiver
-                    && strcmp(index_msg->msg_body, msg->msg_body)){
+                    && !(strcmp(index_msg->msg_body, msg->msg_body))) {
                 free(index_msg);
                 return 1;
             }
