@@ -111,7 +111,7 @@ void *data_worker_main(void *arg) {
             }
         }
         // ADD DATA FROM INPUT TO CIRCULAR BUFFER
-        dw_buffer_length = evbuffer_get_length(dw_buffer);
+        dw_buffer_length = evbuffer_get_contiguous_space(dw_buffer);
         loop_lim = 0;
         if (dw_buffer_length)
             loop_lim = fmin((int)ceil(dw_buffer_length / 287) + 1, 10);

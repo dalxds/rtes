@@ -64,18 +64,13 @@ void server_on_accept(int fd, short ev, void *arg) {
     if (accepted_fd < 0)
         warn("accept failed\n");
 
-    printf("FIND BY IP - START\n");
     // find node_index by ip
     node_index = node_find_node_index(inet_ntoa(client_addr.sin_addr));
     if (node_index < 0)
         warn("node_index wasn't retrieved.\n");
 
-    printf("FIND BY IP - END || Node Index: %d\n", node_index);
-
-
     /*** Set up bufferevent in the base ***/
     // set the socket to non-block
-    // TODO: change to evutil_make_socket_non_block() (?)
     if (setnonblock(accepted_fd) < 0)
         warn("failed to set client socket non-blocking\n");
     // set bufferevent
@@ -88,7 +83,7 @@ void server_on_accept(int fd, short ev, void *arg) {
     node_set_bev(node_index, accepted_bev);
     // signal node connected
     status = node_set_connected(node_index);
-    printf("[S] Accepted connection from %s | Status: %d\n", inet_ntoa(client_addr.sin_addr), status);
+    printf("[S] Accepted connection from %s | Node Index: %d | Status: %d\n", inet_ntoa(client_addr.sin_addr), node_index, status);
 }
 
 // *** MAIN - START *** //

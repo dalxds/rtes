@@ -30,10 +30,6 @@ struct circularBuffer {
 // *** PROGRAM START *** //
 cbuf circular_buf_init(msg *buffer_obj, size_t size) {
     assert(buffer_obj && size);
-    // DEBUG_SECTION -- START
-    printf("SIZEOF BUFFER: %zu\n", sizeof(circularBuffer));
-    printf("SIZEOF MSG %zu\n", MSG_SIZE);
-    // DEBUG_SECTION -- END
     cbuf buffer = malloc(sizeof(circularBuffer));
     assert(buffer);
     buffer->buffer_obj = buffer_obj;
