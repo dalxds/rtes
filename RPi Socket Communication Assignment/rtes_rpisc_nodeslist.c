@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 // LIBEVENT load
 #include <event2/bufferevent.h>
@@ -12,18 +13,23 @@
 #include "rtes_rpisc_nodeslist.h"
 #include "rtes_rpisc_ringbuffer.h"
 #include "rtes_rpisc_rwlock.h"
+#include "rtes_rpisc_ioworker.h"
 
-struct node {
+typedef struct node {
     rwlock_t    lock;
     struct      bufferevent *bev;
+    struct      sockaddr_in node_addr;
     char        ip[INET_ADDRSTRLEN];
     int         node_index;
     size_t      cbuf_index;
     uint32_t    node_aem;
     bool        connected;
-};
+} node;
 
 struct node nodes_list[NODES_NUM];
+
+const uintptr_t S_PORT_2 = 2288;
+const size_t ADDRLEN = sizeof(node_addr);
 
 void nodes_list_init() {
     // init
@@ -35,12 +41,35 @@ void nodes_list_init() {
 
     // parse IPs & initiliaze data
     for (i = 0; i < NODES_NUM; i++) {
+        // NODE INDEX
         nodes_list[i].node_index = i;
+
+        // CBUF INDEX
         //NOTE messages in buffer start from 1
         nodes_list[i].cbuf_index = 1;
+
+        // CONNECTION STATUS
         nodes_list[i].connected = false;
+
+        // IP
         if (fgets(&nodes_list[i].ip[0], INET_ADDRSTRLEN, fptr))
             strtok(&nodes_list[i].ip[0], "\n");
+
+        if(!nodes_list[i].ip[0])
+            err_abort(-1, "Init RW Lock");
+
+        // SOCKET
+        // maybe check not needed?
+        nodes_list[i].node_addr.sin_family = AF_INET;
+        inet_aton(&nodes_list[i].ip[0], &nodes_list[i].node_addr.sin_addr);
+        nodes_list[i].node_addr.sin_port = htons(S_PORT_2);
+
+        // BUFFEREVENT
+        /// set bufferevent
+        nodes_list[i].bev = malloc(sizeof(struct bufferevent *));
+        nodes_list[i].bev = bufferevent_socket_new(io_base, -1, BEV_OPT_THREADSAFE);
+        /// set bufferevent's callbacks
+        bufferevent_setcb(nodes_list[i].bev, io_handle_read, NULL, NULL, NULL);
     }
 
     // parse AEMs for IPs
@@ -71,7 +100,7 @@ void nodes_list_init() {
         status = rwl_init(&nodes_list[i].lock);
         printf("Lock %d initialized with status code %d\n", i, status);
         if (status != 0)
-            err_abort (status, "Init rw lock");
+            err_abort (status, "Init RW Lock");
     }
 
     /* DEBUG_SECTION - START */
@@ -137,6 +166,19 @@ struct bufferevent *node_bev(int node_index) {
     return bev;
 }
 
+struct sockaddr_in node_addr(int node_index) {
+    int status;
+    struct sockaddr_in addr;
+    status = rwl_writelock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Write lock");
+    addr = nodes_list[node_index].node_addr;
+    status = rwl_writeunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Write unlock");
+    return addr;
+};
+
 int node_inc_cbuf_index(int node_index) {
     int status;
     int status2 = 1;
@@ -147,20 +189,6 @@ int node_inc_cbuf_index(int node_index) {
         nodes_list[node_index].cbuf_index++;
         status2 = 0;
     }
-    status = rwl_writeunlock(&nodes_list[node_index].lock);
-    if (status != 0)
-        err_abort (status, "Write unlock");
-    return status2;
-}
-
-int node_set_bev(int node_index, struct bufferevent *bev) {
-    int status;
-    int status2 = -1;
-    status = rwl_writelock(&nodes_list[node_index].lock);
-    if (status != 0)
-        err_abort (status, "Write lock");
-    nodes_list[node_index].bev = bev;
-    status2 = 0;
     status = rwl_writeunlock(&nodes_list[node_index].lock);
     if (status != 0)
         err_abort (status, "Write unlock");

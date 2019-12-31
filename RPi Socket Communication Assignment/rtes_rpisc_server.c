@@ -54,36 +54,38 @@ void server_on_accept(int fd, short ev, void *arg) {
     int accepted_fd;
     int status;
     struct sockaddr_in client_addr;
-    struct bufferevent *accepted_bev;
 
     // accept socket
     socklen_t client_len = sizeof(client_addr);
-    accepted_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+    accepted_fd = accept(fd, (struct sockaddr *) &client_addr, &client_len);
 
-    //error handling
+    // accept socket - error handling
     if (accepted_fd < 0)
-        warn("accept failed\n");
+        warn("[S] accept() Failed!\n");
 
-    // find node_index by ip
-    node_index = node_find_node_index(inet_ntoa(client_addr.sin_addr));
-    if (node_index < 0)
-        warn("node_index wasn't retrieved.\n");
-
-    /*** Set up bufferevent in the base ***/
-    // set the socket to non-block
+    // accept socket - set to non-block
     if (setnonblock(accepted_fd) < 0)
-        warn("failed to set client socket non-blocking\n");
-    // set bufferevent
-    accepted_bev = bufferevent_socket_new(io_base, accepted_fd, BEV_OPT_THREADSAFE);
-    // set bufferevent's callbacks
-    bufferevent_setcb(accepted_bev, io_handle_read, NULL, NULL, NULL);
+        warn("[S] Failed to set to Non-Block!\n");
+
+    // find node_index by IP
+    node_index = node_find_node_index(inet_ntoa(client_addr.sin_addr));
+
+    // find node_index by IP - error handling
+    if (node_index < 0)
+        warn("[S] node_index couldn't be retrieved!\n");
+
+    // add socket to bufferevent
+    bufferevent_setfd(node_bev(node_index), accepted_fd);
+
     // enable bufferevent
-    bufferevent_enable(accepted_bev, EV_READ | EV_WRITE);
-    // save to node
-    node_set_bev(node_index, accepted_bev);
+    bufferevent_enable(node_bev(node_index), EV_READ | EV_WRITE);
+
     // signal node connected
     status = node_set_connected(node_index);
+
+    // print message
     printf("[S] Accepted connection from %s | Node Index: %d | Status: %d\n", inet_ntoa(client_addr.sin_addr), node_index, status);
+
 }
 
 // *** MAIN - START *** //

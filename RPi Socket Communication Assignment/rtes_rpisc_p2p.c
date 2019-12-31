@@ -29,8 +29,9 @@
 #include "rtes_rpisc_rwlock.h"
 #include "rtes_rpisc_nodeslist.h"
 
-// GLOBAL VARIABLES & CONSTANTS
+// // GLOBAL VARIABLES & CONSTANTS
 const uintptr_t S_PORT = 2288;
+volatile bool IO_BASE_STARTED = false;
 
 // STRUCTS
 
@@ -53,8 +54,6 @@ int main(int argc, char **argv) {
     int status;
     // use pthreads in Libevent base
     evthread_use_pthreads();
-    // run parser
-    nodes_list_init();
     /*** IO Thread ***/
     status = pthread_create (&threads_pool[0], NULL, io_worker_main, NULL);
     if (status != 0) 
@@ -66,6 +65,13 @@ int main(int argc, char **argv) {
     // debug thread ID: printf("IO Thread ID: %d\n", io_worker_thread);
     //pthread_join(io_worker_thread, &thread_result);
     //printf("Thread join! Faillll!\n");
+
+    while(!IO_BASE_STARTED){
+        // black hole
+    }
+
+    // run parser
+    nodes_list_init();
 
     /*** Data Worker ***/
     status = pthread_create (&threads_pool[1], NULL, data_worker_main, NULL);
