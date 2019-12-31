@@ -7,3 +7,4 @@
 #define BUFFER_SIZE     50
 
 extern volatile bool IO_BASE_STARTED;
+extern volatile bool NODES_LIST_INIT_DONE;

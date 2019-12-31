@@ -11,7 +11,7 @@ uint32_t node_aem(int node_index);
 
 struct bufferevent *node_bev(int node_index);
 
-struct sockaddr_in node_addr(int node_index);
+struct sockaddr_in *node_addr(int node_index);
 
 int node_inc_cbuf_index(int node_index);
 

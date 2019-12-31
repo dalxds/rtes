@@ -29,9 +29,11 @@
 #include "rtes_rpisc_rwlock.h"
 #include "rtes_rpisc_nodeslist.h"
 
+
 // // GLOBAL VARIABLES & CONSTANTS
 const uintptr_t S_PORT = 2288;
 volatile bool IO_BASE_STARTED = false;
+volatile bool NODES_LIST_INIT_DONE = false;
 
 // STRUCTS
 
@@ -66,12 +68,14 @@ int main(int argc, char **argv) {
     //pthread_join(io_worker_thread, &thread_result);
     //printf("Thread join! Faillll!\n");
 
-    while(!IO_BASE_STARTED){
-        // black hole
-    }
+    while(!IO_BASE_STARTED)
+        sleep(0);
 
     // run parser
     nodes_list_init();
+
+    while(!NODES_LIST_INIT_DONE)
+        sleep(0);
 
     /*** Data Worker ***/
     status = pthread_create (&threads_pool[1], NULL, data_worker_main, NULL);
@@ -79,12 +83,15 @@ int main(int argc, char **argv) {
         err_abort (status, "[DW] Create thread");
     printf("Data Worker ID: %d\n", (int)threads_pool[1]);
     /*** Server Thread ***/
-    status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
-    if (status != 0) 
-        err_abort (status, "[SE] Create thread");
-    printf("Server Thread ID: %d\n", (int)threads_pool[2]);
+    // status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
+    // if (status != 0) 
+    //     err_abort (status, "[SE] Create thread");
+    // printf("Server Thread ID: %d\n", (int)threads_pool[2]);
     /*** Client Thread ***/
-    /// write here
+    status = pthread_create (&threads_pool[3], NULL, client_main, NULL);
+    if (status != 0) 
+        err_abort (status, "[CL] Create thread");
+    printf("Client Thread ID: %d\n", (int)threads_pool[3]);
     /*** Client Thread ***/
     status = pthread_join (threads_pool[0], NULL);
         if (status != 0)

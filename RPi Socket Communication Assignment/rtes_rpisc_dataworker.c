@@ -66,6 +66,8 @@ void *data_worker_main(void *arg) {
 
     /* DEBUG_SECTION - START */
     //fill the buffer with 10 message
+    printf("[DW] Buffer Size: %zu\n", MSG_SIZE);
+
     for (int i = 0; i < 10; i++) {
         create_random_message(circular_buffer);
     }

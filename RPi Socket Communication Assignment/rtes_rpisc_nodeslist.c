@@ -28,8 +28,8 @@ typedef struct node {
 
 struct node nodes_list[NODES_NUM];
 
+// FIXME pass port to initializer as argment
 const uintptr_t S_PORT_2 = 2288;
-const size_t ADDRLEN = sizeof(node_addr);
 
 void nodes_list_init() {
     // init
@@ -70,15 +70,13 @@ void nodes_list_init() {
         nodes_list[i].bev = bufferevent_socket_new(io_base, -1, BEV_OPT_THREADSAFE);
         /// set bufferevent's callbacks
         bufferevent_setcb(nodes_list[i].bev, io_handle_read, NULL, NULL, NULL);
-    }
 
-    // parse AEMs for IPs
-    for (i = 0; i < NODES_NUM; i++) {
-        // allocate memory
+        // AEMS (parse from IPs)
+        /// allocate memory
         char *ip_string = strdup(&nodes_list[i].ip[0]);
         char *aem = malloc(4);
 
-        // remove dots and keep last two parts of string
+        /// remove dots and keep last two parts of string
         char *token = strtok(ip_string, ".");
         char *end;
         token = strtok(NULL, ".");
@@ -87,10 +85,10 @@ void nodes_list_init() {
         token = strtok(NULL, ".");
         strcat(aem, token);
 
-        // convert to uint32_t and save to nodes_list item
+        /// convert to uint32_t and save to nodes_list item
         nodes_list[i].node_aem = strtoul(aem, &end, 10);
 
-        // free memory
+        /// free memory
         free(ip_string);
         free(aem);
     }
@@ -110,6 +108,9 @@ void nodes_list_init() {
     //         printf("NUM: %u\n", nodes_list[i].node_aem);
     // }
     /* DEBUG_SECTION - END */
+
+    // signal DONE
+    NODES_LIST_INIT_DONE = true;
 }
 
 bool node_connected(int node_index) {
@@ -166,13 +167,13 @@ struct bufferevent *node_bev(int node_index) {
     return bev;
 }
 
-struct sockaddr_in node_addr(int node_index) {
+struct sockaddr_in *node_addr(int node_index) {
     int status;
-    struct sockaddr_in addr;
+    struct sockaddr_in *addr;
     status = rwl_writelock(&nodes_list[node_index].lock);
     if (status != 0)
         err_abort (status, "Write lock");
-    addr = nodes_list[node_index].node_addr;
+    addr = &nodes_list[node_index].node_addr;
     status = rwl_writeunlock(&nodes_list[node_index].lock);
     if (status != 0)
         err_abort (status, "Write unlock");

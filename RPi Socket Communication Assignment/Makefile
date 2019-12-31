@@ -1,5 +1,5 @@
 # The name of the source files
-SOURCES = rtes_rpisc_p2p.c rtes_rpisc_server.c rtes_rpisc_ioworker.c rtes_rpisc_dataworker.c rtes_rpisc_nodeslist.c rtes_rpisc_ringbuffer.c rtes_rpisc_rwlock.c
+SOURCES = rtes_rpisc_p2p.c rtes_rpisc_server.c rtes_rpisc_ioworker.c rtes_rpisc_dataworker.c rtes_rpisc_nodeslist.c rtes_rpisc_ringbuffer.c rtes_rpisc_rwlock.c rtes_rpisc_client.c
 
 # The name of the executable
 EXE = exe
