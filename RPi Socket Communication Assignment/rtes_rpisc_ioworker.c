@@ -51,10 +51,21 @@ void *io_worker_main(void *arg) {
 
 void io_handle_read(struct bufferevent *bev, void *arg) {
     printf("[IO] Read Callback Triggered!\n");
+
     if (bufferevent_read_buffer(bev, dw_buffer) < 0)
         printf("Error on reading buffer\n");
 }
 
-void io_handle_write(struct bufferevent *bev, void *arg) {
-    printf("[IO] Write Callback Triggered!\n");
+void io_handle_events(struct bufferevent *bev, short events, void *user_data) {
+    if (events & BEV_EVENT_EOF)
+        printf("Connection closed.\n");
+
+    else if (events & BEV_EVENT_ERROR) {
+        printf("Got an error on the connection: %s\n",
+               strerror(errno));/*XXX win32*/
+    }
+
+    /* None of the other events can happen here, since we haven't enabled
+     * timeouts */
+    bufferevent_free(bev);
 }

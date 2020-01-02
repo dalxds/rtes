@@ -24,6 +24,7 @@
 // FILES load
 #include "rtes_rpisc_p2p.h"
 #include "rtes_rpisc_server.h"
+#include "rtes_rpisc_client.h"
 #include "rtes_rpisc_ioworker.h"
 #include "rtes_rpisc_dataworker.h"
 #include "rtes_rpisc_rwlock.h"
@@ -34,6 +35,7 @@
 const uintptr_t S_PORT = 2288;
 volatile bool IO_BASE_STARTED = false;
 volatile bool NODES_LIST_INIT_DONE = false;
+volatile bool DATA_WORKER_INIT = false;
 
 // STRUCTS
 
@@ -56,6 +58,7 @@ int main(int argc, char **argv) {
     int status;
     // use pthreads in Libevent base
     evthread_use_pthreads();
+
     /*** IO Thread ***/
     status = pthread_create (&threads_pool[0], NULL, io_worker_main, NULL);
     if (status != 0) 
@@ -68,35 +71,41 @@ int main(int argc, char **argv) {
     //pthread_join(io_worker_thread, &thread_result);
     //printf("Thread join! Faillll!\n");
 
-    while(!IO_BASE_STARTED)
-        sleep(0);
+    /// black hole for IO Base to start
+    while(!IO_BASE_STARTED);
 
     // run parser
     nodes_list_init();
 
-    while(!NODES_LIST_INIT_DONE)
-        sleep(0);
+    /// black hole for nodes_list initialization to finish
+    while(!NODES_LIST_INIT_DONE);
 
     /*** Data Worker ***/
     status = pthread_create (&threads_pool[1], NULL, data_worker_main, NULL);
     if (status != 0) 
         err_abort (status, "[DW] Create thread");
     printf("Data Worker ID: %d\n", (int)threads_pool[1]);
+
+    /// black hole for data worker to start
+    while(!DATA_WORKER_INIT);
+
     /*** Server Thread ***/
     status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
     if (status != 0) 
         err_abort (status, "[SE] Create thread");
     printf("Server Thread ID: %d\n", (int)threads_pool[2]);
+
     /*** Client Thread ***/
-    // status = pthread_create (&threads_pool[3], NULL, client_main, (void*)S_PORT);
-    // if (status != 0) 
-    //     err_abort (status, "[CL] Create thread");
-    // printf("Client Thread ID: %d\n", (int)threads_pool[3]);
-    
+    status = pthread_create (&threads_pool[3], NULL, client_main, (void*)S_PORT);
+    if (status != 0) 
+        err_abort (status, "[CL] Create thread");
+    printf("Client Thread ID: %d\n", (int)threads_pool[3]);
+
     // Check exit
     status = pthread_join (threads_pool[0], NULL);
         if (status != 0)
             err_abort (status, "Join thread");
+
     // exit main
     return 0;
 }

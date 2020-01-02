@@ -35,6 +35,7 @@
 void *client_main(void *arg) {
     printf("[CL] Entered Thread Area\n");
     const uintptr_t PORT = (uintptr_t)arg;
+
     while (1) {
         for (int node_index = 0; node_index < NODES_NUM; node_index++) {
             if (!node_connected(node_index)) {
@@ -50,6 +51,7 @@ void *client_main(void *arg) {
         }
     }
 
+    // exit thread
     pthread_exit(0);
 }
 

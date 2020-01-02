@@ -8,3 +8,5 @@
 
 extern volatile bool IO_BASE_STARTED;
 extern volatile bool NODES_LIST_INIT_DONE;
+extern volatile bool DATA_WORKER_INIT;
+

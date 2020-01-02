@@ -87,6 +87,8 @@ void *data_worker_main(void *arg) {
     int status;
     int found;
 
+    DATA_WORKER_INIT = true;
+
     // MAIN LOOP
     while (1) {
         // GET DATA READY FOR OUTPUT
