@@ -18,7 +18,6 @@
 typedef struct node {
     rwlock_t    lock;
     struct      bufferevent *bev;
-    struct      sockaddr_in node_addr;
     char        ip[INET_ADDRSTRLEN];
     int         node_index;
     size_t      cbuf_index;
@@ -27,9 +26,6 @@ typedef struct node {
 } node;
 
 struct node nodes_list[NODES_NUM];
-
-// FIXME pass port to initializer as argment
-const uintptr_t S_PORT_2 = 2288;
 
 void nodes_list_init() {
     // init
@@ -57,12 +53,6 @@ void nodes_list_init() {
 
         if(!nodes_list[i].ip[0])
             err_abort(-1, "Init RW Lock");
-
-        // SOCKET
-        // maybe check not needed?
-        nodes_list[i].node_addr.sin_family = AF_INET;
-        inet_aton(&nodes_list[i].ip[0], &nodes_list[i].node_addr.sin_addr);
-        nodes_list[i].node_addr.sin_port = htons(S_PORT_2);
 
         // BUFFEREVENT
         /// set bufferevent
@@ -140,6 +130,19 @@ size_t node_cbuf_index(int node_index) {
     return buf_index;
 }
 
+char* node_ip(int node_index) {
+    int status;
+    char* ip;
+    status = rwl_readlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read lock");
+    ip = nodes_list[node_index].ip;
+    status = rwl_readunlock(&nodes_list[node_index].lock);
+    if (status != 0)
+        err_abort (status, "Read unlock");
+    return ip;
+}
+
 uint32_t node_aem(int node_index) {
     int status;
     uint32_t node_aem;
@@ -166,19 +169,6 @@ struct bufferevent *node_bev(int node_index) {
         err_abort (status, "Read unlock");
     return bev;
 }
-
-struct sockaddr_in *node_addr(int node_index) {
-    int status;
-    struct sockaddr_in *addr;
-    status = rwl_writelock(&nodes_list[node_index].lock);
-    if (status != 0)
-        err_abort (status, "Write lock");
-    addr = &nodes_list[node_index].node_addr;
-    status = rwl_writeunlock(&nodes_list[node_index].lock);
-    if (status != 0)
-        err_abort (status, "Write unlock");
-    return addr;
-};
 
 int node_inc_cbuf_index(int node_index) {
     int status;
@@ -224,7 +214,7 @@ int node_add_to_output_buffer(int node_index, char output[]) {
     return status2;
 }
 
-size_t node_find_node_index(char ip[]) {
+size_t node_find_node_index_by_ip(char ip[]) {
     int status;
     int node_index = -1;
     for (int i = 0; i < NODES_NUM; i++) {

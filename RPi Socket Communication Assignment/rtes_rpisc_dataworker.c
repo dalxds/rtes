@@ -50,7 +50,7 @@ void create_random_message(cbuf buffer) {
 }
 
 void *data_worker_main(void *arg) {
-    printf("[DW] Entered Thread Area.\n");
+    printf("[DW] Entered Thread Area\n");
 
     // INIT circular buffer
     printf("[DW] Circular Buffer Initialization\n");

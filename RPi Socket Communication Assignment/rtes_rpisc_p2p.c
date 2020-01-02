@@ -83,16 +83,17 @@ int main(int argc, char **argv) {
         err_abort (status, "[DW] Create thread");
     printf("Data Worker ID: %d\n", (int)threads_pool[1]);
     /*** Server Thread ***/
-    // status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
-    // if (status != 0) 
-    //     err_abort (status, "[SE] Create thread");
-    // printf("Server Thread ID: %d\n", (int)threads_pool[2]);
-    /*** Client Thread ***/
-    status = pthread_create (&threads_pool[3], NULL, client_main, NULL);
+    status = pthread_create (&threads_pool[2], NULL, server_main, (void*)S_PORT);
     if (status != 0) 
-        err_abort (status, "[CL] Create thread");
-    printf("Client Thread ID: %d\n", (int)threads_pool[3]);
+        err_abort (status, "[SE] Create thread");
+    printf("Server Thread ID: %d\n", (int)threads_pool[2]);
     /*** Client Thread ***/
+    // status = pthread_create (&threads_pool[3], NULL, client_main, (void*)S_PORT);
+    // if (status != 0) 
+    //     err_abort (status, "[CL] Create thread");
+    // printf("Client Thread ID: %d\n", (int)threads_pool[3]);
+    
+    // Check exit
     status = pthread_join (threads_pool[0], NULL);
         if (status != 0)
             err_abort (status, "Join thread");

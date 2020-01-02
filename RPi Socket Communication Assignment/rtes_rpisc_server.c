@@ -28,51 +28,26 @@
 #include "rtes_rpisc_ioworker.h"
 #include "rtes_rpisc_nodeslist.h"
 
-// STRUCTS
-
-struct event_base *server_base;
-
-// *** FUNCTION - START *** //
-int setnonblock(int fd) {
-    int flags;
-    flags = fcntl(fd, F_GETFL);
-
-    if (flags < 0)
-        return flags;
-
-    flags |= O_NONBLOCK;
-
-    if (fcntl(fd, F_SETFL, flags) < 0)
-        return -1;
-
-    return 0;
-}
-
-void server_on_accept(int fd, short ev, void *arg) {
+void server_on_accept (struct evconnlistener *listener, evutil_socket_t accepted_fd,
+                       struct sockaddr *address, int socklen, void *ctx) {
     // init variables
     int node_index;
-    int accepted_fd;
     int status;
-    struct sockaddr_in client_addr;
-
-    // accept socket
-    socklen_t client_len = sizeof(client_addr);
-    accepted_fd = accept(fd, (struct sockaddr *) &client_addr, &client_len);
-
-    // accept socket - error handling
-    if (accepted_fd < 0)
-        warn("[S] accept() Failed!\n");
-
-    // accept socket - set to non-block
-    if (setnonblock(accepted_fd) < 0)
-        warn("[S] Failed to set to Non-Block!\n");
+    struct sockaddr_in *node_addr = (struct sockaddr_in *)address;
+    char *node_ip = inet_ntoa(node_addr->sin_addr);
 
     // find node_index by IP
-    node_index = node_find_node_index(inet_ntoa(client_addr.sin_addr));
+    node_index = node_find_node_index_by_ip(node_ip);
 
     // find node_index by IP - error handling
     if (node_index < 0)
         warn("[S] node_index couldn't be retrieved!\n");
+
+    // reject if node connected
+    if (node_connected(node_index)) {
+        printf("[S] Connection from %s rejected because node already connected!\n", node_ip);
+        return;
+    }
 
     // add socket to bufferevent
     bufferevent_setfd(node_bev(node_index), accepted_fd);
@@ -84,53 +59,46 @@ void server_on_accept(int fd, short ev, void *arg) {
     status = node_set_connected(node_index);
 
     // print message
-    printf("[S] Accepted connection from %s | Node Index: %d | Status: %d\n", inet_ntoa(client_addr.sin_addr), node_index, status);
-
+    printf("[S] Accepted connection from %s | Node Index: %d | Status: %d\n", node_ip, node_index, status);
 }
 
 // *** MAIN - START *** //
 void *server_main(void *arg) {
-    event_enable_debug_mode();
-    event_enable_debug_logging(EVENT_DBG_ALL);
-    int listen_fd;
-    struct sockaddr_in listen_addr;
-    int reuseaddr_on;
-    struct event *server_event;
-    /* Initialize libevent. */
+    printf("[SE] Entered Thread Area\n");
+
+    // initialize structures
+    struct event_base *server_base;
+    struct sockaddr_in sin;
+    struct evconnlistener *listener;
+
+    // initialize libevent server base
     server_base = event_base_new();
-    /* Create our listening socket. */
-    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (listen_fd < 0)
-        err(1, "listen failed");
+    // initialize libevent server base - error handling
+    if (!server_base)
+        err(1, "[SE] Server Base Initialization Failed!");
 
-    memset(&listen_addr, 0, sizeof(listen_addr));
-    listen_addr.sin_family = AF_INET;
-    listen_addr.sin_addr.s_addr = INADDR_ANY;
-    listen_addr.sin_port = htons((uintptr_t)arg);
 
-    if (bind(listen_fd, (struct sockaddr *)&listen_addr, sizeof(listen_addr)) < 0)
-        err(1, "bind failed");
+    // set up listening address
+    /// clear sockaddr before using
+    memset(&sin, 0, sizeof(sin));
+    /// set up family
+    sin.sin_family = AF_INET;
+    /// set up listening address
+    sin.sin_addr.s_addr = INADDR_ANY;
+    /// set up listening port
+    sin.sin_port = htons((uintptr_t)arg);
 
-    if (listen(listen_fd, 5) < 0)
-        err(1, "listen failed");
+    // listener
+    listener = evconnlistener_new_bind(server_base, server_on_accept, NULL,
+                                       LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
+                                       (struct sockaddr*)&sin, sizeof(sin));
 
-    reuseaddr_on = 1;
-    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_on, sizeof(reuseaddr_on));
+    // listener - error handling
+    if (!listener)
+        err(1, "[SE] Couldn't create listener!");
 
-    /* Set the socket to non-blocking, this is essential in event
-     * based programming with libevent. */
-    if (setnonblock(listen_fd) < 0)
-        err(1, "failed to set server socket to non-blocking");
-
-    /* We now have a listening socket, we create a read event to
-    * be notified when a client connects. */
-    server_event = event_new(server_base, listen_fd, EV_READ | EV_PERSIST, server_on_accept, NULL);
-
-    if (event_add(server_event, NULL) < 0)
-        err(1, "failed to add event to the base");
-
-    /* Start the event loop. */
+    // start the event loop
     printf("[S] Server Base Dispatched!\n");
     event_base_dispatch(server_base);
 

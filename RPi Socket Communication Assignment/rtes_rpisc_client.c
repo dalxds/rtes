@@ -33,15 +33,17 @@
 // *** FUNCTIONS - START *** //
 
 void *client_main(void *arg) {
-    printf("[CL] Entered Thread Area.\n");
+    printf("[CL] Entered Thread Area\n");
+    const uintptr_t PORT = (uintptr_t)arg;
     while (1) {
         for (int node_index = 0; node_index < NODES_NUM; node_index++) {
-            if (!node_connected(node_index)){
-                char *ip = inet_ntoa(node_addr(node_index)->sin_addr);
-                printf("[CL] Node IP: %s\n", ip);
-                printf("[CL] Node ADDRLEN: %zu\n", ADDRLEN);
-                if (bufferevent_socket_connect(node_bev(node_index), (struct sockaddr *)  node_addr(node_index), ADDRLEN) == 0){
+            if (!node_connected(node_index)) {
+                // FIXME be careful! may block indefinately
+                // FIXME be careful! handling when no one connected
+                if (bufferevent_socket_connect_hostname(node_bev(node_index), NULL, AF_INET, node_ip(node_index), PORT) == 0) {
                     printf("[CL] Server Found!\n");
+                    bufferevent_enable(node_bev(node_index), EV_READ | EV_WRITE);
+                    printf("[CL] Bufferevent enabled!\n");
                     node_set_connected(node_index);
                 }
             }
