@@ -1,11 +1,7 @@
-// main server function
+/// @brief Server Thread Function
+/// Binds and Listens on the the specified PORT
+/// waiting for incoming connections
 void *server_main(void *arg);
 
-//sets socket to non-blocking mode
-//=> returns 0 on success, -1 on error
-int setnonblock(int fd);
-
-/*  callback function on accept
- *  will propably be a function of the IO Worker Thread
- */ 
+/// @ brief Callback Function triggered when server accepts a new connection
 void on_accept(int fd, short ev, void *arg);

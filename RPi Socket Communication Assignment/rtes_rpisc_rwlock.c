@@ -1,32 +1,13 @@
-/*
- * rwlock.c
- *
- * This file implements the "read-write lock" synchronization
- * construct.
- *
- * A read-write lock allows a thread to lock shared data either
- * for shared read access or exclusive write access.
- *
- * The rwl_init() and rwl_destroy() functions, respectively,
- * allow you to initialize/create and destroy/free the
- * read-write lock.
- *
- * The rwl_readlock() function locks a read-write lock for
- * shared read access, and rwl_readunlock() releases the
- * lock. rwl_readtrylock() attempts to lock a read-write lock
- * for read access, and returns EBUSY instead of blocking.
- *
- * The rwl_writelock() function locks a read-write lock for
- * exclusive write access, and rwl_writeunlock() releases the
- * lock. rwl_writetrylock() attempts to lock a read-write lock
- * for write access, and returns EBUSY instead of blocking.
- */
+// LIBRARIES
 #include <pthread.h>
+#include <errno.h>
+
+// FILES
 #include "rtes_rpisc_rwlock.h"
 
-/*
- * Initialize a read-write lock
- */
+/********************************************//**
+ *  FUNCTIONS
+ ***********************************************/
 int rwl_init (rwlock_t *rwl) {
     int status;
     rwl->r_active = 0;
@@ -58,9 +39,6 @@ int rwl_init (rwlock_t *rwl) {
     return 0;
 }
 
-/*
- * Destroy a read-write lock
- */
 int rwl_destroy (rwlock_t *rwl) {
     int status, status1, status2;
 
@@ -102,22 +80,19 @@ int rwl_destroy (rwlock_t *rwl) {
     return (status == 0 ? status : (status1 == 0 ? status1 : status2));
 }
 
-/*
- * Handle cleanup when the read lock condition variable
- * wait is cancelled.
- *
- * Simply record that the thread is no longer waiting,
- * and unlock the mutex.
- */
+/// @brief  Handle Read Cleanup
+/// Handle cleanup when the read lock condition variable
+/// wait is cancelled.
+/// Simply record that the thread is no longer waiting,
+/// and unlock the mutex.
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return void
 static void rwl_readcleanup (void *arg) {
     rwlock_t    *rwl = (rwlock_t *)arg;
     rwl->r_wait--;
     pthread_mutex_unlock (&rwl->mutex);
 }
 
-/*
- * Lock a read-write lock for read access.
- */
 int rwl_readlock (rwlock_t *rwl) {
     int status;
 
@@ -151,30 +126,6 @@ int rwl_readlock (rwlock_t *rwl) {
     return status;
 }
 
-/*
- * Attempt to lock a read-write lock for read access (don't
- * block if unavailable).
- */
-int rwl_readtrylock (rwlock_t *rwl)
-{
-    int status, status2;
-
-    if (rwl->valid != RWLOCK_VALID)
-        return EINVAL;
-    status = pthread_mutex_lock (&rwl->mutex);
-    if (status != 0)
-        return status;
-    if (rwl->w_active || rwl->w_wait)
-        status = EBUSY;
-    else
-        rwl->r_active++;
-    status2 = pthread_mutex_unlock (&rwl->mutex);
-    return (status2 != 0 ? status2 : status);
-}
-
-/*
- * Unlock a read-write lock from read access.
- */
 int rwl_readunlock (rwlock_t *rwl) {
     int status, status2;
 
@@ -195,22 +146,19 @@ int rwl_readunlock (rwlock_t *rwl) {
     return (status2 == 0 ? status : status2);
 }
 
-/*
- * Handle cleanup when the write lock condition variable
- * wait is cancelled.
- *
- * Simply record that the thread is no longer waiting,
- * and unlock the mutex.
- */
+/// @brief  Handle Write Cleanup
+/// Handle cleanup when the write lock condition variable
+/// wait is cancelled.
+/// Simply record that the thread is no longer waiting,
+/// and unlock the mutex.
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return void
 static void rwl_writecleanup (void *arg) {
     rwlock_t *rwl = (rwlock_t *)arg;
     rwl->w_wait--;
     pthread_mutex_unlock (&rwl->mutex);
 }
 
-/*
- * Lock a read-write lock for write access.
- */
 int rwl_writelock (rwlock_t *rwl) {
     int status;
 
@@ -244,9 +192,6 @@ int rwl_writelock (rwlock_t *rwl) {
     return status;
 }
 
-/*
- * Unlock a read-write lock from write access.
- */
 int rwl_writeunlock (rwlock_t *rwl) {
     int status;
 

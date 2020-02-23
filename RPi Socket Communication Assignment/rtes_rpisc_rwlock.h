@@ -1,26 +1,7 @@
-/*
- * rwlock.h
- *
- * This header file describes the "reader/writer lock" synchronization
- * construct. The type rwlock_t describes the full state of the lock
- * including the POSIX 1003.1c synchronization objects necessary.
- *
- * A reader/writer lock allows a thread to lock shared data either for shared
- * read access or exclusive write access.
- *
- * The rwl_init() and rwl_destroy() functions, respectively, allow you to
- * initialize/create and destroy/free the reader/writer lock.
- */
+// LIBRARIES
 #include <pthread.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-/*
- * Structure describing a read-write lock.
- */
+// STRUCTS
 typedef struct rwlock_tag {
     pthread_mutex_t     mutex;
     pthread_cond_t      read;           /* wait for read */
@@ -32,31 +13,57 @@ typedef struct rwlock_tag {
     int                 w_wait;         /* writers waiting */
 } rwlock_t;
 
+// GLOBAL VARIABLES & CONSTANTS
 #define RWLOCK_VALID    0xfacade
 
-/*
- * Support static initialization of barriers
- */
+
+// Support static initialization of barriers
 #define RWL_INITIALIZER \
     {PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, \
     PTHREAD_COND_INITIALIZER, RWLOCK_VALID, 0, 0, 0, 0}
 
-/*
- * Define read-write lock functions
- */
+/********************************************//**
+ *  MAIN API FUNCTIONS
+ ***********************************************/
+/// @brief  Initialize an RW Lock
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return 0   Success
+/// @return !0  Error No
 extern int rwl_init (rwlock_t *rwlock);
+
+/// @brief  Destroy an RW Lock
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return 0   Success
+/// @return !0  Error No
 extern int rwl_destroy (rwlock_t *rwlock);
+
+/// @brief  Read Lock an RW Lock
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return 0   Success
+/// @return !0  Error No
 extern int rwl_readlock (rwlock_t *rwlock);
-extern int rwl_readlock (rwlock_t *rwlock);
-extern int rwl_readtrylock (rwlock_t *rwlock);
+
+/// @brief  Read Unlock an RW Lock
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return 0   Success
+/// @return !0  Error No
 extern int rwl_readunlock (rwlock_t *rwlock);
+
+/// @brief  Read Unlock an RW Lock
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return 0   Success
+/// @return !0  Error No
 extern int rwl_writelock (rwlock_t *rwlock);
+
+/// @brief  Write Unlock an RW Lock
+/// @param  rwl An rwl lock handler (rwlock_t)
+/// @return 0   Success
+/// @return !0  Error No
 extern int rwl_writeunlock (rwlock_t *rwlock);
 
-/*
- * Error Handling
- */
-
+/********************************************//**
+ *  ERROR HANDLERS
+ ***********************************************/
 #define err_abort(code,text) do { \
     fprintf (stderr, "%s at \"%s\":%d: %s\n", \
         text, __FILE__, __LINE__, strerror (code)); \
