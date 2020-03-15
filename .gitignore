@@ -1,16 +1,1 @@
-*
-
-# But not these files...
-!.gitignore
-!RPi Socket Communication Assignment/Makefile
-!RPi Socket Communication Assignment/rtes_rpisc_p2p.c
-!RPi Socket Communication Assignment/rtes_rpisc_ringbuffer.h
-!RPi Socket Communication Assignment/rtes_rpisc_ringbuffer.c
-!RPi Socket Communication Assignment/rtes_rpisc_server.c
-!RPi Socket Communication Assignment/rtes_rpisc_server.h
-!RPi Socket Communication Assignment/rtes_rpisc_ioworker.c
-!RPi Socket Communication Assignment/rtes_rpisc_ioworker.h
-!RPi Socket Communication Assignment/rtes_rpisc_dataworker.h
-!RPi Socket Communication Assignment/rtes_rpisc_dataworker.h
-!Time Sampling Assignment/rtes_alarm.c
-!Time Sampling Assignment/rtes_enhancedSleep.c
+.DS_Store
